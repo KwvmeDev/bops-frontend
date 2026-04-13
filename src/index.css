@@ -1,0 +1,148 @@
+@import "tailwindcss";
+
+@theme {
+  /* ─── Brand (Rich Green) ─── */
+  --color-brand: #22c55e;
+  --color-brand-light: #4ade80;
+  --color-brand-dark: #16a34a;
+  --color-brand-subtle: #052e16;
+
+  /* ─── Surfaces (dark defaults) ─── */
+  --color-surface-base: #09090b;
+  --color-surface-subtle: #18181b;
+  --color-surface-muted: #27272a;
+  --color-surface-overlay: #3f3f46;
+
+  /* ─── Semantic ─── */
+  --color-success: #10b981;
+  --color-success-light: #34d399;
+  --color-warning: #f59e0b;
+  --color-warning-light: #fbbf24;
+  --color-danger: #ef4444;
+  --color-danger-light: #f87171;
+
+  /* ─── Zinc (explicit so [data-theme="light"] can override via CSS cascade) ─── */
+  --color-zinc-50:  #fafafa;
+  --color-zinc-100: #f4f4f5;
+  --color-zinc-200: #e4e4e7;
+  --color-zinc-300: #d4d4d8;
+  --color-zinc-400: #a1a1aa;
+  --color-zinc-500: #71717a;
+  --color-zinc-600: #52525b;
+  --color-zinc-700: #3f3f46;
+  --color-zinc-800: #27272a;
+  --color-zinc-900: #18181b;
+  --color-zinc-950: #09090b;
+
+  /* ─── Fonts ─── */
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Geist", "Inter", system-ui, sans-serif;
+  --font-mono: "Geist Mono", "JetBrains Mono", monospace;
+
+  /* ─── Border radius ─── */
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  14px;
+  --radius-xl:  20px;
+  --radius-2xl: 28px;
+
+  /* ─── Animations ─── */
+  --animate-shimmer:  shimmer 1.5s infinite;
+  --animate-scale-in: scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-slide-up: slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+  @keyframes shimmer {
+    100% { transform: translateX(100%); }
+  }
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.95); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+}
+
+/* ─── Light mode overrides ─── */
+/* Placed outside @theme so they override at element level (CSS cascade) */
+[data-theme="light"] {
+  /* Surfaces → light */
+  --color-surface-base:    #f8fafc;
+  --color-surface-subtle:  #ffffff;
+  --color-surface-muted:   #f1f5f9;
+  --color-surface-overlay: #e2e8f0;
+
+  /* Brand-subtle → light tint */
+  --color-brand-subtle: #dcfce7;
+
+  /* Zinc scale → inverted (zinc-100 becomes near-black, zinc-900 becomes near-white) */
+  --color-zinc-50:  #09090b;
+  --color-zinc-100: #18181b;
+  --color-zinc-200: #27272a;
+  --color-zinc-300: #3f3f46;
+  --color-zinc-400: #52525b;
+  --color-zinc-500: #71717a;
+  --color-zinc-600: #a1a1aa;
+  --color-zinc-700: #d4d4d8;
+  --color-zinc-800: #e4e4e7;
+  --color-zinc-900: #f4f4f5;
+  --color-zinc-950: #fafafa;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-surface-base);
+    color: var(--color-zinc-100);
+    margin: 0;
+    font-family: var(--font-sans);
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary   { @apply bg-brand text-white hover:bg-brand-dark; }
+  .btn-secondary { @apply bg-surface-muted text-zinc-300 hover:bg-surface-overlay; }
+  .btn-success   { @apply bg-success text-white hover:bg-emerald-600; }
+  .btn-danger    { @apply bg-danger text-white hover:bg-red-700; }
+  .btn-sm        { @apply px-3 py-1.5 text-sm; }
+  .btn-lg        { @apply px-6 py-3 text-lg; }
+
+  .input {
+    @apply w-full px-3 py-2 border border-surface-overlay/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand/50 bg-surface-muted text-zinc-100 placeholder:text-zinc-600;
+  }
+  .input-error { @apply border-danger/50 focus:ring-danger/50; }
+
+  .label { @apply block text-xs font-medium text-zinc-400 mb-1.5; }
+
+  .card { @apply bg-surface-subtle rounded-2xl border border-surface-muted/50 shadow-sm; }
+
+  .badge         { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium; }
+  .badge-success { @apply bg-success/10 text-success; }
+  .badge-warning { @apply bg-warning/10 text-warning-light; }
+  .badge-danger  { @apply bg-danger/10 text-danger-light; }
+
+  /* Landing page marquee */
+  .animate-marquee {
+    animation: marquee 24s linear infinite;
+  }
+}
+
+/* ─── Print styles ─── */
+@media print {
+  .no-print { display: none !important; }
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-only { display: block !important; }
+}
+
+.print-only { display: none; }
