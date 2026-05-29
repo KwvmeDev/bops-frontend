@@ -46,11 +46,13 @@ export default function Layout() {
               transition={{ duration: 0.2 }}
               className="flex items-center gap-2.5 overflow-hidden"
             >
-              <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center flex-shrink-0">
-                <span className="text-white font-bold text-sm">B</span>
-              </div>
+              <img
+                src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
+                alt="Klevr"
+                className="h-7 w-auto flex-shrink-0"
+              />
               <div className="min-w-0">
-                <p className="font-semibold text-zinc-100 text-sm truncate">{tenant?.name || 'BMS POS'}</p>
+                <p className="font-semibold text-zinc-100 text-sm truncate">{tenant?.name || 'Klevr'}</p>
                 <p className="text-xs text-zinc-500">Point of Sale</p>
               </div>
             </motion.div>
@@ -61,9 +63,13 @@ export default function Layout() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ duration: 0.2 }}
-              className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center"
+              className="w-8 h-8 flex items-center justify-center"
             >
-              <span className="text-white font-bold text-sm">B</span>
+              <img
+                src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
+                alt="Klevr"
+                className="h-7 w-auto"
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -200,7 +206,7 @@ export default function Layout() {
               <Menu className="w-5 h-5" />
             </button>
             {/* Shop name on mobile only */}
-            <span className="md:hidden font-semibold text-zinc-100 text-sm">{tenant?.name || 'BMS POS'}</span>
+            <span className="md:hidden font-semibold text-zinc-100 text-sm">{tenant?.name || 'Klevr'}</span>
           </div>
 
           {/* Right: theme toggle + divider + logout */}

@@ -35,11 +35,12 @@ export default function PublicNav() {
       >
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center shadow-lg shadow-brand/30">
-              <span className="text-white font-bold text-sm">B</span>
-            </div>
-            <span className="text-zinc-100 font-semibold text-sm tracking-tight">BMS POS</span>
+          <Link to="/" className="flex items-center group">
+            <img
+              src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
+              alt="Klevr"
+              className="h-5 w-auto"
+            />
           </Link>
 
           {/* Desktop nav */}

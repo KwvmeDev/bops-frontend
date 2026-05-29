@@ -114,7 +114,7 @@ export default function UpgradeModal() {
             {/* Sub-header */}
             <div className="px-6 py-3 bg-surface-muted/30 border-b border-surface-muted/50">
               <p className="text-xs text-zinc-500 text-center">
-                Choose a plan to continue. Cancel anytime — no lock-in.
+                Choose a plan to continue. Cancel anytime, no lock-in.
               </p>
             </div>
 

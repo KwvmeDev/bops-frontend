@@ -16,8 +16,8 @@ const Receipt = forwardRef(({ sale, tenant }, ref) => {
       <div className="text-center mb-4 border-b border-dashed border-gray-400 pb-4">
         <div className='mx-auto h-16 rounded-2xl flex items-center justify-center'>
           <img 
-            src="/logo.jpg" 
-            alt="POS Logo" 
+            src="/logo-light.png"
+            alt="Klevr"
             // className="h-10" 
             style={{
               height: "54px"

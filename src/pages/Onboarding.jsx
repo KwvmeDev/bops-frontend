@@ -263,7 +263,7 @@ export default function Onboarding() {
 
         {/* Step label */}
         <p className="text-center text-xs text-zinc-700 mt-4">
-          Step {step + 1} of {STEPS.length} — {STEPS[step].title}
+          Step {step + 1} of {STEPS.length}: {STEPS[step].title}
         </p>
       </div>
     </div>

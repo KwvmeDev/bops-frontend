@@ -42,8 +42,8 @@ function AppMockup() {
       <div className="absolute inset-0 bg-brand/10 blur-3xl rounded-3xl" />
       <img
         src={theme === 'dark' ? lpImageDark : lpImageLight}
-        alt="BMS POS app preview"
-        className="relative w-full h-auto rounded-2xl shadow-2xl shadow-black/60"
+        alt="Klevr app preview"
+        className="relative w-full h-auto rounded-2xl"
       />
     </div>
   );
@@ -72,7 +72,7 @@ function HeroSection() {
           className="inline-flex items-center gap-2 px-3 py-1.5 bg-brand/10 border border-brand/20 rounded-full mb-8"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
-          <span className="text-xs text-brand-light font-medium">Now in public beta — free for 14 days</span>
+          <span className="text-xs text-brand-light font-medium">Now in public beta, free for 14 days</span>
         </motion.div>
 
         {/* Headline */}
@@ -95,8 +95,8 @@ function HeroSection() {
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.25 }}
           className="text-lg text-zinc-400 max-w-xl mx-auto mb-10 leading-relaxed"
         >
-          BMS gives your retail team a blazing-fast POS, real-time inventory,
-          and clean reporting — without the enterprise complexity.
+          Klevr gives your retail team a blazing-fast POS, real-time inventory,
+          and clean reporting, without the enterprise complexity.
         </motion.p>
 
         {/* CTAs */}
@@ -198,7 +198,7 @@ const FEATURES = [
   {
     icon: Zap,
     title: 'Instant checkout',
-    desc: 'Process a sale in under 10 seconds. No lag, no loading spinners — just pure speed.',
+    desc: 'Process a sale in under 10 seconds. No lag, no loading spinners. Just pure speed.',
   },
   {
     icon: Package,
@@ -218,12 +218,12 @@ const FEATURES = [
   {
     icon: Printer,
     title: 'Receipt printing',
-    desc: 'Print receipts instantly. Works with any USB or network printer — no drivers.',
+    desc: 'Print receipts instantly. Works with any USB or network printer, no drivers needed.',
   },
   {
     icon: ShieldCheck,
     title: 'Fully isolated',
-    desc: 'Multi-tenant architecture. Your data is yours — completely isolated by design.',
+    desc: 'Multi-tenant architecture. Your data is yours, completely isolated by design.',
   },
 ];
 
@@ -241,7 +241,7 @@ function FeaturesSection() {
             <span className="text-zinc-500">Nothing it doesn't.</span>
           </h2>
           <p className="text-zinc-500 text-lg max-w-lg mx-auto">
-            Built for the realities of retail — not for enterprise software teams.
+            Built for the realities of retail, not for enterprise software teams.
           </p>
         </motion.div>
 

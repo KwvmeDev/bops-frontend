@@ -154,7 +154,7 @@ function BulkUploadModal({ categories, onClose, onImported }) {
             >
               <Upload className="w-8 h-8 mx-auto mb-3 text-zinc-600" />
               <p className="text-sm font-medium text-zinc-300 mb-1">Drop your file here or click to browse</p>
-              <p className="text-xs text-zinc-600">Supports .xlsx, .xls, .csv — max 500 rows</p>
+              <p className="text-xs text-zinc-600">Supports .xlsx, .xls, .csv (max 500 rows)</p>
               <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileInput} />
             </div>
           )}

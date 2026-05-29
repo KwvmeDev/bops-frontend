@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { Eye, EyeOff, Loader2, ArrowRight, ArrowLeft, Check } from 'lucide-react';
 
 const STEPS = ['Business', 'Account', 'Contact'];
@@ -59,6 +60,7 @@ export default function Register() {
   });
 
   const { register } = useAuth();
+  const { theme } = useTheme();
   const navigate = useNavigate();
 
   const set = (field) => (e) => setFormData(p => ({ ...p, [field]: e.target.value }));
@@ -75,6 +77,11 @@ export default function Register() {
   };
 
   const goBack = () => { setDirection(-1); setStep(s => s - 1); setError(''); };
+
+  const handleBackArrow = () => {
+    if (step === 0) navigate('/login');
+    else goBack();
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -101,23 +108,37 @@ export default function Register() {
   const labelClass = "block text-xs font-medium text-zinc-400 mb-1.5";
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center bg-surface-base px-4 py-12"
-      style={{ background: 'radial-gradient(ellipse at 50% 35%, rgba(99,102,241,0.10) 0%, #09090b 65%)' }}
-    >
+    <div className="min-h-screen bg-surface-base flex flex-col items-center justify-center px-4 py-12">
       <motion.div
         initial={{ opacity: 0, y: 28, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: 'spring', damping: 26, stiffness: 240 }}
-        className="w-full max-w-md"
+        className="w-full max-w-md flex flex-col items-center"
       >
+        {/* Back arrow */}
+        <motion.button
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.04, duration: 0.3 }}
+          onClick={handleBackArrow}
+          whileTap={{ scale: 0.94 }}
+          className="mb-6 w-10 h-10 rounded-full bg-surface-subtle border border-surface-muted/50 flex items-center justify-center text-zinc-400 hover:text-zinc-100 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </motion.button>
+
         {/* Logo */}
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }} className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-brand mb-4 shadow-lg shadow-brand/30">
-            <span className="text-white font-bold text-lg">B</span>
-          </div>
-          <h1 className="text-2xl font-semibold text-zinc-100">Create your account</h1>
-          <p className="text-zinc-500 text-sm mt-1">Start your 14-day free trial</p>
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08, duration: 0.3 }}
+          className="mb-6"
+        >
+          <img
+            src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
+            alt="Klevr"
+            className="h-8 w-auto"
+          />
         </motion.div>
 
         {/* Progress dots */}
@@ -152,112 +173,114 @@ export default function Register() {
           ))}
         </div>
 
-        {/* Card */}
-        <div className="bg-surface-subtle border border-surface-muted/50 rounded-2xl shadow-2xl overflow-hidden">
-          <AnimatePresence>
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="mx-6 mt-6 bg-danger/10 border border-danger/30 text-danger-light px-4 py-3 rounded-lg text-sm">
-                  {error}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+        {/* Card with glow */}
+        <div className="relative w-full">
+          {/* Ambient glow */}
+          <div className="absolute inset-0 bg-brand/15 blur-3xl rounded-3xl -z-10 scale-110" />
 
-          <div className="overflow-hidden">
-            <AnimatePresence custom={direction} mode="wait">
-              <motion.div
-                key={step}
-                custom={direction}
-                variants={variants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                className="p-6"
-              >
-                {/* Step 0: Business Info */}
-                {step === 0 && (
-                  <form onSubmit={goNext} className="space-y-4">
-                    <div>
-                      <label className={labelClass}>Business name *</label>
-                      <input type="text" required value={formData.businessName} onChange={set('businessName')} placeholder="Your Shop Name" className={inputClass} autoFocus />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Your name *</label>
-                      <input type="text" required value={formData.ownerName} onChange={set('ownerName')} placeholder="Full name" className={inputClass} />
-                    </div>
-                    <motion.button type="submit" whileTap={{ scale: 0.97 }} className="w-full py-2.5 bg-brand hover:bg-brand-dark text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 mt-2">
-                      Continue <ArrowRight className="w-4 h-4" />
-                    </motion.button>
-                  </form>
-                )}
+          {/* Card */}
+          <div className="bg-surface-subtle border border-surface-muted/50 rounded-2xl overflow-hidden">
+            {/* Card header */}
+            <div className="px-6 pt-6 pb-2">
+              <h1 className="text-xl font-semibold text-zinc-100">Create your account</h1>
+              <p className="text-zinc-500 text-sm mt-1">Start your 14-day free trial</p>
+            </div>
 
-                {/* Step 1: Account */}
-                {step === 1 && (
-                  <form onSubmit={goNext} className="space-y-4">
-                    <div>
-                      <label className={labelClass}>Email address *</label>
-                      <input type="email" required autoComplete="email" value={formData.email} onChange={set('email')} placeholder="you@example.com" className={inputClass} autoFocus />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Password *</label>
-                      <div className="relative">
-                        <input type={showPassword ? 'text' : 'password'} required minLength={8} value={formData.password} onChange={set('password')} placeholder="Min 8 characters" className={`${inputClass} pr-10`} />
-                        <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-zinc-500 hover:text-zinc-300 transition-colors">
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="mx-6 mt-4 bg-danger/10 border border-danger/30 text-danger-light px-4 py-3 rounded-lg text-sm">
+                    {error}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="overflow-hidden">
+              <AnimatePresence custom={direction} mode="wait">
+                <motion.div
+                  key={step}
+                  custom={direction}
+                  variants={variants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                  className="p-6 pt-4"
+                >
+                  {/* Step 0: Business Info */}
+                  {step === 0 && (
+                    <form onSubmit={goNext} className="space-y-4">
+                      <div>
+                        <label className={labelClass}>Business name *</label>
+                        <input type="text" required value={formData.businessName} onChange={set('businessName')} placeholder="Your Shop Name" className={inputClass} autoFocus />
                       </div>
-                      <PasswordStrength password={formData.password} />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Confirm password *</label>
-                      <input type={showPassword ? 'text' : 'password'} required value={formData.confirmPassword} onChange={set('confirmPassword')} placeholder="Confirm your password" className={inputClass} />
-                    </div>
-                    <div className="flex gap-3 mt-2">
-                      <motion.button type="button" onClick={goBack} whileTap={{ scale: 0.97 }} className="flex-1 py-2.5 bg-surface-muted hover:bg-surface-overlay text-zinc-300 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2">
-                        <ArrowLeft className="w-4 h-4" /> Back
-                      </motion.button>
-                      <motion.button type="submit" whileTap={{ scale: 0.97 }} className="flex-1 py-2.5 bg-brand hover:bg-brand-dark text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2">
+                      <div>
+                        <label className={labelClass}>Your name *</label>
+                        <input type="text" required value={formData.ownerName} onChange={set('ownerName')} placeholder="Full name" className={inputClass} />
+                      </div>
+                      <motion.button type="submit" whileTap={{ scale: 0.97 }} className="w-full py-2.5 bg-brand hover:bg-brand-dark text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 mt-2">
                         Continue <ArrowRight className="w-4 h-4" />
                       </motion.button>
-                    </div>
-                  </form>
-                )}
+                    </form>
+                  )}
 
-                {/* Step 2: Contact (optional) + Submit */}
-                {step === 2 && (
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <p className="text-xs text-zinc-500 -mt-1 mb-2">Optional — you can fill these in later from Settings.</p>
-                    <div>
-                      <label className={labelClass}>Phone number</label>
-                      <input type="tel" value={formData.phone} onChange={set('phone')} placeholder="+1234567890" className={inputClass} />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Business address</label>
-                      <input type="text" value={formData.address} onChange={set('address')} placeholder="123 Main Street" className={inputClass} />
-                    </div>
-                    <div className="flex gap-3 mt-2">
-                      <motion.button type="button" onClick={goBack} whileTap={{ scale: 0.97 }} className="py-2.5 px-4 bg-surface-muted hover:bg-surface-overlay text-zinc-300 text-sm font-medium rounded-lg transition-colors flex items-center gap-2">
-                        <ArrowLeft className="w-4 h-4" />
+                  {/* Step 1: Account */}
+                  {step === 1 && (
+                    <form onSubmit={goNext} className="space-y-4">
+                      <div>
+                        <label className={labelClass}>Email address *</label>
+                        <input type="email" required autoComplete="email" value={formData.email} onChange={set('email')} placeholder="you@example.com" className={inputClass} autoFocus />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Password *</label>
+                        <div className="relative">
+                          <input type={showPassword ? 'text' : 'password'} required minLength={8} value={formData.password} onChange={set('password')} placeholder="Min 8 characters" className={`${inputClass} pr-10`} />
+                          <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-zinc-500 hover:text-zinc-300 transition-colors">
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                        <PasswordStrength password={formData.password} />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Confirm password *</label>
+                        <input type={showPassword ? 'text' : 'password'} required value={formData.confirmPassword} onChange={set('confirmPassword')} placeholder="Confirm your password" className={inputClass} />
+                      </div>
+                      <motion.button type="submit" whileTap={{ scale: 0.97 }} className="w-full py-2.5 bg-brand hover:bg-brand-dark text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 mt-2">
+                        Continue <ArrowRight className="w-4 h-4" />
                       </motion.button>
-                      <motion.button type="submit" disabled={loading} whileTap={{ scale: 0.97 }} className="flex-1 py-2.5 bg-brand hover:bg-brand-dark text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+                    </form>
+                  )}
+
+                  {/* Step 2: Contact (optional) + Submit */}
+                  {step === 2 && (
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <p className="text-xs text-zinc-500 -mt-1 mb-2">Optional. You can fill these in later from Settings.</p>
+                      <div>
+                        <label className={labelClass}>Phone number</label>
+                        <input type="tel" value={formData.phone} onChange={set('phone')} placeholder="+1234567890" className={inputClass} />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Business address</label>
+                        <input type="text" value={formData.address} onChange={set('address')} placeholder="123 Main Street" className={inputClass} />
+                      </div>
+                      <motion.button type="submit" disabled={loading} whileTap={{ scale: 0.97 }} className="w-full py-2.5 bg-brand hover:bg-brand-dark text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-60 flex items-center justify-center gap-2 mt-2">
                         {loading ? (
                           <><Loader2 className="w-4 h-4 animate-spin" /> Creating account...</>
                         ) : (
                           <>Create Account <Check className="w-4 h-4" /></>
                         )}
                       </motion.button>
-                    </div>
-                  </form>
-                )}
-              </motion.div>
-            </AnimatePresence>
+                    </form>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </div>
         </div>
 
