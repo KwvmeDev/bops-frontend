@@ -16,7 +16,7 @@ function AnimatedTotal({ value, prefix }) {
   return <motion.span>{display}</motion.span>;
 }
 
-export default function Cart({ items, onUpdateQuantity, onRemoveItem, onClearCart, onCheckout, paymentMethod, onPaymentMethodChange, loading }) {
+export default function Cart({ items, onUpdateQuantity, onRemoveItem, onClearCart, onCheckout, paymentMethod, onPaymentMethodChange, loading, variant = 'sidebar' }) {
   const { tenant, currencySymbol } = useAuth();
   const sym = currencySymbol;
   const taxRate = tenant?.taxRate || 0;
@@ -25,7 +25,7 @@ export default function Cart({ items, onUpdateQuantity, onRemoveItem, onClearCar
   const total = subtotal + taxAmount;
 
   return (
-    <div className="flex flex-col h-full bg-surface-subtle border-l border-surface-muted/50">
+    <div className={`flex flex-col bg-surface-subtle${variant === 'sidebar' ? ' h-full border-l border-surface-muted/50' : ''}`}>
       {/* Header */}
       <div className="px-4 py-3.5 border-b border-surface-muted/50 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2">
@@ -60,7 +60,7 @@ export default function Cart({ items, onUpdateQuantity, onRemoveItem, onClearCar
       </div>
 
       {/* Items */}
-      <div className="flex-1 overflow-y-auto">
+      <div className={variant === 'sheet' ? 'max-h-[46vh] overflow-y-auto' : 'flex-1 overflow-y-auto'}>
         <AnimatePresence>
           {items.length === 0 ? (
             <motion.div

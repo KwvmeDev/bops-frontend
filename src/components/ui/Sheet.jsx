@@ -8,9 +8,10 @@ export function Sheet({ open, onOpenChange, children, title, description }) {
         <Drawer.Overlay className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
         <Drawer.Content className={cn(
           'fixed bottom-0 left-0 right-0 z-50 flex flex-col rounded-t-2xl',
+          'max-h-[88vh] overflow-hidden',
           'bg-surface-subtle border-t border-surface-overlay',
           'focus:outline-none',
-          'md:left-auto md:top-0 md:bottom-0 md:right-0 md:w-[420px] md:rounded-t-none md:rounded-l-2xl md:border-t-0 md:border-l'
+          'md:left-auto md:top-0 md:bottom-0 md:right-0 md:w-[420px] md:max-h-none md:overflow-auto md:rounded-t-none md:rounded-l-2xl md:border-t-0 md:border-l'
         )}>
           <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-surface-overlay md:hidden" />
           {(title || description) && (

@@ -477,7 +477,7 @@ export default function Inventory() {
   };
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto">
+    <div className="p-4 md:p-6 max-w-[1400px] mx-auto">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
         <div>
@@ -489,16 +489,16 @@ export default function Inventory() {
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={() => setShowBulkModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-surface-muted hover:bg-surface-overlay border border-surface-muted/60 text-zinc-300 text-sm font-medium rounded-xl transition-colors"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-surface-muted hover:bg-surface-overlay border border-surface-muted/60 text-zinc-300 text-sm font-medium rounded-xl transition-colors"
             >
-              <Upload className="w-4 h-4" /> Upload CSV/Excel
+              <Upload className="w-4 h-4" /><span className="hidden sm:inline">Upload CSV/Excel</span>
             </motion.button>
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={() => { setEditingProduct(null); setShowModal(true); }}
-              className="flex items-center gap-2 px-4 py-2.5 bg-brand hover:bg-brand-dark text-white text-sm font-medium rounded-xl transition-colors shadow-lg shadow-brand/20"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-brand hover:bg-brand-dark text-white text-sm font-medium rounded-xl transition-colors shadow-lg shadow-brand/20"
             >
-              <Plus className="w-4 h-4" /> Add Product
+              <Plus className="w-4 h-4" /><span className="hidden sm:inline">Add Product</span>
             </motion.button>
           </div>
         )}
@@ -538,9 +538,116 @@ export default function Inventory() {
         </div>
       </motion.div>
 
-      {/* Table */}
+      {/* Mobile product cards */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-        className="bg-surface-subtle border border-surface-muted/50 rounded-2xl overflow-hidden">
+        className="md:hidden space-y-3">
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-surface-subtle border border-surface-muted/50 rounded-2xl p-4 space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1.5 flex-1"><Skeleton className="h-4 w-3/4 rounded" /><Skeleton className="h-3 w-1/2 rounded" /></div>
+                <Skeleton className="h-5 w-16 rounded-full ml-2" />
+              </div>
+              <div className="flex gap-6 py-2 border-y border-surface-muted/40">
+                <Skeleton className="h-8 w-16 rounded" /><Skeleton className="h-8 w-16 rounded" />
+              </div>
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-7 w-24 rounded-lg" /><Skeleton className="h-7 w-16 rounded-lg" />
+              </div>
+            </div>
+          ))
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-zinc-600 bg-surface-subtle border border-surface-muted/50 rounded-2xl">
+            <Package className="w-10 h-10 mb-3 opacity-30" />
+            <p className="text-sm">No products found</p>
+            {canManage && (
+              <button onClick={() => { setEditingProduct(null); setShowModal(true); }} className="mt-3 text-xs text-brand-light hover:text-brand transition-colors">
+                Add your first product →
+              </button>
+            )}
+          </div>
+        ) : (
+          <AnimatePresence>
+            {filtered.map((product, i) => {
+              const th = product.lowStockThreshold ?? tenant?.lowStockThreshold ?? 5;
+              const isLow = product.stock <= th && product.stock > 0;
+              const isOut = product.stock === 0;
+              return (
+                <motion.div
+                  key={product.id}
+                  layout
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ delay: Math.min(i * 0.02, 0.15), duration: 0.22 }}
+                  className={`bg-surface-subtle border border-surface-muted/50 rounded-2xl p-4 ${!product.active ? 'opacity-50' : ''}`}
+                >
+                  {/* Name + status */}
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-zinc-100 truncate">{product.name}</p>
+                      <p className="text-xs text-zinc-500 mt-0.5">
+                        {product.sku || 'No SKU'}{product.category?.name ? ` · ${product.category.name}` : ''}
+                      </p>
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 font-medium ${
+                      !product.active ? 'bg-surface-muted text-zinc-500' :
+                      isOut ? 'bg-danger/10 text-danger-light' :
+                      isLow ? 'bg-warning/10 text-warning' :
+                      'bg-success/10 text-success'
+                    }`}>
+                      {!product.active ? 'Inactive' : isOut ? 'Out of stock' : isLow ? 'Low stock' : 'In stock'}
+                    </span>
+                  </div>
+                  {/* Prices */}
+                  <div className="flex items-center gap-6 py-2.5 my-2 border-y border-surface-muted/40">
+                    <div>
+                      <p className="text-xs text-zinc-600 mb-0.5">Cost</p>
+                      <p className="text-sm text-zinc-400">{fmt(product.costPrice)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-zinc-600 mb-0.5">Price</p>
+                      <p className="text-sm font-semibold text-zinc-200">{fmt(product.sellingPrice)}</p>
+                    </div>
+                  </div>
+                  {/* Stock + actions */}
+                  <div className="flex items-center justify-between pt-0.5">
+                    {canManage ? (
+                      <div className="flex items-center gap-2">
+                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleStockAdjust(product, -1)} disabled={product.stock === 0}
+                          className="w-7 h-7 rounded-lg bg-surface-muted hover:bg-surface-overlay flex items-center justify-center text-zinc-400 disabled:opacity-30 transition-colors text-sm font-bold">−</motion.button>
+                        <span className={`w-8 text-center text-sm font-semibold ${isOut ? 'text-danger-light' : isLow ? 'text-warning' : 'text-zinc-200'}`}>{product.stock}</span>
+                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleStockAdjust(product, 1)}
+                          className="w-7 h-7 rounded-lg bg-surface-muted hover:bg-surface-overlay flex items-center justify-center text-zinc-400 transition-colors text-sm font-bold">+</motion.button>
+                      </div>
+                    ) : (
+                      <span className={`text-sm font-medium ${isOut ? 'text-danger-light' : isLow ? 'text-warning' : 'text-zinc-200'}`}>
+                        {product.stock} in stock
+                      </span>
+                    )}
+                    {canManage && (
+                      <div className="flex items-center gap-1">
+                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setEditingProduct(product); setShowModal(true); }}
+                          className="p-2 text-zinc-500 hover:text-brand-light hover:bg-brand/10 rounded-lg transition-colors">
+                          <Edit2 className="w-4 h-4" />
+                        </motion.button>
+                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleDelete(product)}
+                          className="p-2 text-zinc-500 hover:text-danger-light hover:bg-danger/10 rounded-lg transition-colors">
+                          <Trash2 className="w-4 h-4" />
+                        </motion.button>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        )}
+      </motion.div>
+
+      {/* Desktop table */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+        className="hidden md:block bg-surface-subtle border border-surface-muted/50 rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>

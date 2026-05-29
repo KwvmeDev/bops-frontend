@@ -6,16 +6,18 @@ import { salesApi } from '../api/client';
 import ProductGrid from '../components/ProductGrid';
 import Cart from '../components/Cart';
 import Receipt from '../components/Receipt';
-import { X, Printer, CheckCircle, ArrowRight } from 'lucide-react';
+import { Sheet } from '../components/ui/Sheet';
+import { X, Printer, CheckCircle, ArrowRight, ShoppingCart } from 'lucide-react';
 import { toast } from '../components/ui';
 
 export default function SalesScreen() {
-  const { tenant } = useAuth();
+  const { tenant, currencySymbol } = useAuth();
   const [cartItems, setCartItems] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [loading, setLoading] = useState(false);
   const [completedSale, setCompletedSale] = useState(null);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
   const receiptRef = useRef();
 
   const handlePrint = useReactToPrint({
@@ -51,6 +53,7 @@ export default function SalesScreen() {
         paymentMethod
       });
       setCompletedSale(res.data.data);
+      setCartOpen(false);
       setShowReceipt(true);
       setCartItems([]);
     } catch (err) {
@@ -62,15 +65,23 @@ export default function SalesScreen() {
 
   const handleCloseReceipt = () => { setShowReceipt(false); setCompletedSale(null); };
 
+  // Derived values used by the mobile cart bar
+  const sym = currencySymbol;
+  const taxRate = tenant?.taxRate || 0;
+  const subtotal = cartItems.reduce((s, i) => s + i.sellingPrice * i.quantity, 0);
+  const total = subtotal + subtotal * taxRate;
+  const itemCount = cartItems.reduce((s, i) => s + i.quantity, 0);
+
   return (
     <div className="h-[calc(100vh-56px)] md:h-screen flex bg-surface-base overflow-hidden">
-      {/* Product grid — left */}
+
+      {/* Product grid — full width on mobile, flex-1 on desktop */}
       <div className="flex-1 min-w-0 overflow-hidden">
         <ProductGrid onAddToCart={handleAddToCart} />
       </div>
 
-      {/* Cart — right */}
-      <div className="w-80 lg:w-96 flex-shrink-0 overflow-hidden">
+      {/* Cart sidebar — desktop only */}
+      <div className="hidden md:block w-80 lg:w-96 flex-shrink-0 overflow-hidden">
         <Cart
           items={cartItems}
           onUpdateQuantity={handleUpdateQuantity}
@@ -83,7 +94,64 @@ export default function SalesScreen() {
         />
       </div>
 
-      {/* Receipt modal */}
+      {/* ── Mobile only ─────────────────────────────────────────────────────── */}
+
+      {/* Sticky cart bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 px-3 py-2.5 bg-surface-base/85 backdrop-blur-md border-t border-surface-muted/40">
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={() => setCartOpen(true)}
+          className="w-full py-3.5 px-4 bg-success hover:bg-success/90 text-white rounded-xl font-semibold text-sm flex items-center justify-between shadow-lg shadow-success/20 transition-colors"
+        >
+          {/* Left: icon + count */}
+          <div className="flex items-center gap-2.5">
+            <div className="relative flex-shrink-0">
+              <ShoppingCart className="w-5 h-5" />
+              <AnimatePresence>
+                {itemCount > 0 && (
+                  <motion.span
+                    key={itemCount}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                    transition={{ type: 'spring', damping: 14, stiffness: 320 }}
+                    className="absolute -top-2 -right-2 min-w-[18px] h-[18px] bg-white text-success text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none"
+                  >
+                    {itemCount > 9 ? '9+' : itemCount}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </div>
+            <span>
+              {itemCount > 0
+                ? `${itemCount} item${itemCount !== 1 ? 's' : ''} in cart`
+                : 'Cart is empty'}
+            </span>
+          </div>
+
+          {/* Right: total or CTA */}
+          <span className="font-bold tracking-tight">
+            {itemCount > 0 ? `${sym}${total.toFixed(2)}` : 'View Cart'}
+          </span>
+        </motion.button>
+      </div>
+
+      {/* Cart bottom sheet */}
+      <Sheet open={cartOpen} onOpenChange={setCartOpen}>
+        <Cart
+          items={cartItems}
+          onUpdateQuantity={handleUpdateQuantity}
+          onRemoveItem={handleRemoveItem}
+          onClearCart={handleClearCart}
+          onCheckout={handleCheckout}
+          paymentMethod={paymentMethod}
+          onPaymentMethodChange={setPaymentMethod}
+          loading={loading}
+          variant="sheet"
+        />
+      </Sheet>
+
+      {/* ── Receipt modal (shared mobile + desktop) ─────────────────────────── */}
       <AnimatePresence>
         {showReceipt && completedSale && (
           <motion.div

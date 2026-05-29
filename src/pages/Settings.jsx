@@ -187,7 +187,7 @@ export default function Settings() {
                     <label className={labelClass}>Shop name</label>
                     <input type="text" value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className={inputClass} disabled={!isOwner} />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className={labelClass}>Currency symbol</label>
                       <input type="text" value={formData.currencySymbol} onChange={e => setFormData(p => ({ ...p, currencySymbol: e.target.value }))} placeholder="$" maxLength={5} className={inputClass} disabled={!isOwner} />

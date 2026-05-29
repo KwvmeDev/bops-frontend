@@ -209,7 +209,7 @@ export default function Users() {
                     </div>
                   </div>
                   {canEdit && (
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <motion.button whileTap={{ scale: 0.9 }} onClick={() => openSheet(user)}
                         className="p-1.5 text-zinc-500 hover:text-brand-light hover:bg-brand/10 rounded-lg transition-colors">
                         <Edit2 className="w-3.5 h-3.5" />

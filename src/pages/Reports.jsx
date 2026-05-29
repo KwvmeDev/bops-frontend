@@ -94,7 +94,7 @@ export default function Reports() {
   const visibleTabs = TABS.filter(t => !t.minRole || hasMinRole(t.minRole));
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto" ref={reportRef}>
+    <div className="p-4 md:p-6 max-w-[1400px] mx-auto" ref={reportRef}>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 no-print">
         <div>
@@ -102,7 +102,7 @@ export default function Reports() {
           <p className="text-zinc-500 text-sm mt-0.5">Sales performance and analytics</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-2 bg-surface-subtle border border-surface-muted/50 rounded-xl px-3 py-2">
               <Calendar className="w-4 h-4 text-zinc-500 flex-shrink-0" />
               <span className="text-xs text-zinc-500">From</span>
