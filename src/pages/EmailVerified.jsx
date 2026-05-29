@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authApi } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
 const bgStyle = { background: 'radial-gradient(ellipse at 50% 35%, rgba(99,102,241,0.10) 0%, #09090b 65%)' };
@@ -9,6 +10,7 @@ const bgStyle = { background: 'radial-gradient(ellipse at 50% 35%, rgba(99,102,2
 export default function EmailVerified() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { updateUser } = useAuth();
   const token = searchParams.get('token');
   const [status, setStatus] = useState('loading'); // loading | success | error
   const [errorMessage, setErrorMessage] = useState('');
@@ -21,6 +23,8 @@ export default function EmailVerified() {
     }
     authApi.verifyEmail(token)
       .then(() => {
+        // Update the in-memory + localStorage user so the banner disappears immediately
+        updateUser({ emailVerified: true });
         setStatus('success');
         setTimeout(() => navigate('/dashboard'), 3000);
       })
