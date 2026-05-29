@@ -72,7 +72,7 @@ export default function Reports() {
   const tabIndex = (id) => TABS.filter(t => !t.minRole || hasMinRole(t.minRole)).findIndex(t => t.id === id);
   const direction = tabIndex(activeTab) > tabIndex(prevTab) ? 1 : -1;
 
-  const changeTab = (id) => { setPrevTab(activeTab); setActiveTab(id); };
+  const changeTab = (id) => { setPrevTab(activeTab); setActiveTab(id); setReport(null); };
 
   useEffect(() => {
     const load = async () => {
