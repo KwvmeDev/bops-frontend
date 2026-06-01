@@ -7,10 +7,10 @@ export default function LowStockBadge() {
   useEffect(() => {
     const fetchLowStock = async () => {
       try {
-        const response = await productsApi.getAll({ lowStock: 'true' });
-        setCount(response.data.data.length);
-      } catch (error) {
-        console.error('Failed to fetch low stock count:', error);
+        const response = await productsApi.getLowStockCount();
+        setCount(response.data.data.count ?? 0);
+      } catch {
+        // Non-critical — badge simply won't show if count is unavailable
       }
     };
 

@@ -5,7 +5,23 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Eye, EyeOff, Loader2, ArrowRight, ArrowLeft, Check } from 'lucide-react';
 
-const STEPS = ['Business', 'Account', 'Contact'];
+const STEPS = ['Business', 'Account', 'Contact', 'Categories'];
+
+const BUSINESS_TYPES = [
+  { key: 'grocery',     label: 'Grocery / Provisions Store',     emoji: '🏪' },
+  { key: 'pharmacy',    label: 'Pharmacy',                        emoji: '💊' },
+  { key: 'electronics', label: 'Electronics',                     emoji: '📱' },
+  { key: 'fashion',     label: 'Fashion & Clothing',              emoji: '👗' },
+  { key: 'beauty',      label: 'Beauty & Cosmetics',              emoji: '💄' },
+  { key: 'hardware',    label: 'Hardware & Building Materials',   emoji: '🔧' },
+  { key: 'auto_parts',  label: 'Auto Parts & Accessories',        emoji: '🚗' },
+  { key: 'agriculture', label: 'Agricultural / Farm Supplies',    emoji: '🌾' },
+  { key: 'bakery',      label: 'Bakery',                          emoji: '🍞' },
+  { key: 'restaurant',  label: 'Restaurant / Fast Food',          emoji: '🍽️' },
+  { key: 'stationery',  label: 'Stationery & Office Supplies',    emoji: '📚' },
+  { key: 'baby_kids',   label: 'Baby & Kids',                     emoji: '👶' },
+  { key: 'general',     label: 'General / Other',                 emoji: '➕' },
+];
 
 function PasswordStrength({ password }) {
   const score = Math.min(
@@ -48,6 +64,7 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [businessTypes, setBusinessTypes] = useState([]);
 
   const [formData, setFormData] = useState({
     businessName: '',
@@ -64,6 +81,11 @@ export default function Register() {
   const navigate = useNavigate();
 
   const set = (field) => (e) => setFormData(p => ({ ...p, [field]: e.target.value }));
+
+  const toggleBusinessType = (key) =>
+    setBusinessTypes(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
 
   const goNext = (e) => {
     e?.preventDefault();
@@ -83,8 +105,7 @@ export default function Register() {
     else goBack();
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (selectedTypes) => {
     setError('');
     setLoading(true);
     try {
@@ -94,7 +115,8 @@ export default function Register() {
         email: formData.email,
         password: formData.password,
         phone: formData.phone || undefined,
-        address: formData.address || undefined
+        address: formData.address || undefined,
+        businessTypes: selectedTypes
       });
       navigate('/dashboard');
     } catch (err) {
@@ -257,9 +279,9 @@ export default function Register() {
                     </form>
                   )}
 
-                  {/* Step 2: Contact (optional) + Submit */}
+                  {/* Step 2: Contact (optional) */}
                   {step === 2 && (
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form onSubmit={goNext} className="space-y-4">
                       <p className="text-xs text-zinc-500 -mt-1 mb-2">Optional. You can fill these in later from Settings.</p>
                       <div>
                         <label className={labelClass}>Phone number</label>
@@ -269,14 +291,80 @@ export default function Register() {
                         <label className={labelClass}>Business address</label>
                         <input type="text" value={formData.address} onChange={set('address')} placeholder="123 Main Street" className={inputClass} />
                       </div>
-                      <motion.button type="submit" disabled={loading} whileTap={{ scale: 0.97 }} className="w-full py-2.5 bg-brand hover:bg-brand-dark text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-60 flex items-center justify-center gap-2 mt-2">
-                        {loading ? (
-                          <><Loader2 className="w-4 h-4 animate-spin" /> Creating account...</>
-                        ) : (
-                          <>Create Account <Check className="w-4 h-4" /></>
-                        )}
+                      <motion.button type="submit" whileTap={{ scale: 0.97 }} className="w-full py-2.5 bg-brand hover:bg-brand-dark text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 mt-2">
+                        Continue <ArrowRight className="w-4 h-4" />
                       </motion.button>
                     </form>
+                  )}
+
+                  {/* Step 3: Business type selection */}
+                  {step === 3 && (
+                    <div className="space-y-5">
+                      <div>
+                        <h2 className="text-base font-semibold text-zinc-100">What do you sell?</h2>
+                        <p className="text-xs text-zinc-500 mt-1">
+                          We'll set up your product categories automatically. You can always edit them later.
+                        </p>
+                      </div>
+
+                      {/* Chip grid */}
+                      <div className="grid grid-cols-2 gap-2">
+                        {BUSINESS_TYPES.map(({ key, label, emoji }) => {
+                          const selected = businessTypes.includes(key);
+                          return (
+                            <motion.button
+                              key={key}
+                              type="button"
+                              whileTap={{ scale: 0.96 }}
+                              onClick={() => toggleBusinessType(key)}
+                              className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all text-left ${
+                                selected
+                                  ? 'border-brand bg-brand/10 text-brand'
+                                  : 'border-surface-overlay bg-surface-muted text-zinc-300 hover:border-zinc-500'
+                              }`}
+                            >
+                              <span className="text-base leading-none">{emoji}</span>
+                              <span className="leading-tight">{label}</span>
+                            </motion.button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="space-y-3 pt-1">
+                        <motion.button
+                          type="button"
+                          whileTap={{ scale: 0.97 }}
+                          disabled={loading}
+                          onClick={() => handleSubmit(businessTypes)}
+                          className="w-full py-2.5 bg-brand hover:bg-brand-dark text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                        >
+                          {loading ? (
+                            <><Loader2 className="w-4 h-4 animate-spin" /> Creating account...</>
+                          ) : (
+                            <>Finish setup <ArrowRight className="w-4 h-4" /></>
+                          )}
+                        </motion.button>
+
+                        <button
+                          type="button"
+                          disabled={loading}
+                          onClick={() => handleSubmit([])}
+                          className="w-full text-center text-xs text-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-60 py-1"
+                        >
+                          Skip this step
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={loading}
+                          onClick={goBack}
+                          className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-60"
+                        >
+                          <ArrowLeft className="w-3 h-3" /> Back
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </motion.div>
               </AnimatePresence>

@@ -52,7 +52,8 @@ const PLANS = [
 
 export default function UpgradeModal() {
   const { upgradeModalOpen, closeUpgradeModal } = useSubscription();
-  const { currencySymbol, convertPrice } = useAuth();
+  const { geoSymbol, convertPrice } = useAuth();
+  const displaySymbol = geoSymbol ?? '$';
   const [loadingPlan, setLoadingPlan] = useState(null);
   const [error, setError] = useState('');
 
@@ -139,7 +140,7 @@ export default function UpgradeModal() {
                   <div className="mb-4">
                     <div className="text-sm font-semibold text-zinc-200">{plan.displayName}</div>
                     <div className="mt-1 flex items-end gap-1">
-                      <span className="text-2xl font-bold text-zinc-100">{currencySymbol}{convertPrice(plan.priceMonthly).toLocaleString()}</span>
+                      <span className="text-2xl font-bold text-zinc-100">{displaySymbol}{convertPrice(plan.priceMonthly).toLocaleString()}</span>
                       <span className="text-xs text-zinc-500 mb-0.5">/mo</span>
                     </div>
                   </div>

@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, Fragment } from 'react';
 import dayjs from 'dayjs';
 import { useAuth } from '../context/AuthContext';
 
@@ -52,6 +52,28 @@ const Receipt = forwardRef(({ sale, tenant }, ref) => {
       {/* Divider */}
       <div className="border-t border-dashed border-gray-400 my-2"></div>
 
+      {/* Prescription Details Block — only shown in pharmacyMode when prescription is linked */}
+      {sale.prescription && tenant?.pharmacyMode && (
+        <div className="border border-gray-300 p-2 mb-3 rounded-sm">
+          <p className="text-xs font-bold text-gray-700 mb-1">Prescription Details</p>
+          <p className="text-xs text-gray-700">
+            Rx: {sale.prescription.rxNumber}
+          </p>
+          <p className="text-xs text-gray-700">
+            Prescriber: {sale.prescription.prescriber?.name || sale.prescription.prescriberName || 'N/A'}
+            {(sale.prescription.prescriber?.licenceNumber) && (
+              <span>  |  Lic: {sale.prescription.prescriber.licenceNumber}</span>
+            )}
+          </p>
+          <p className="text-xs text-gray-700">
+            Patient: {sale.prescription.patientName}
+            {sale.prescription.patientPhone && (
+              <span>  |  Tel: {sale.prescription.patientPhone}</span>
+            )}
+          </p>
+        </div>
+      )}
+
       {/* Items */}
       <div className="mb-4">
         <table className="w-full text-xs">
@@ -64,19 +86,103 @@ const Receipt = forwardRef(({ sale, tenant }, ref) => {
             </tr>
           </thead>
           <tbody>
-            {sale.items?.map((item, index) => (
-              <tr key={index} className="border-b border-gray-200">
-                <td className="py-1 max-w-[100px] truncate">
-                  {item.product?.name || 'Unknown'}
-                </td>
-                <td className="text-center py-1">{item.quantity}</td>
-                <td className="text-right py-1">{(item.unitPrice)}</td>
-                <td className="text-right py-1">{(item.total)}</td>
-              </tr>
-            ))}
+            {sale.items?.map((item, index) => {
+              const batches = item.saleItemBatches || [];
+              const showBatch = tenant?.printBatchOnReceipt && batches.length > 0;
+              const showExpiry = tenant?.printExpiryOnReceipt && batches.length > 0;
+              const hasBatchInfo = showBatch || showExpiry;
+              // Show dosage instructions only when a prescription is linked and item has instructions
+              const showInstructions = sale.prescription && tenant?.pharmacyMode && item.instructions;
+
+              return (
+                <Fragment key={index}>
+                  <tr className={hasBatchInfo || showInstructions ? '' : 'border-b border-gray-200'}>
+                    <td className="py-1 max-w-[100px] truncate">
+                      {item.product?.name || 'Unknown'}
+                    </td>
+                    <td className="text-center py-1">{item.quantity}</td>
+                    <td className="text-right py-1">{item.unitPrice}</td>
+                    <td className="text-right py-1">{item.total}</td>
+                  </tr>
+                  {/* Dosage instructions from the linked prescription item */}
+                  {showInstructions && (
+                    <tr className={hasBatchInfo ? '' : 'border-b border-gray-200'}>
+                      <td colSpan={4} className="pb-1 pl-1">
+                        <span className="text-xs italic text-gray-500">
+                          &rarr; {item.instructions}
+                        </span>
+                      </td>
+                    </tr>
+                  )}
+                  {hasBatchInfo && (
+                    <tr className="border-b border-gray-200">
+                      <td colSpan={4} className="pb-1 pl-1">
+                        {showBatch && batches.map((sib, bi) => (
+                          <div key={`b-${bi}`} className="text-xs font-normal text-gray-600">
+                            Batch: {sib.batch?.batchNumber || 'N/A'}
+                          </div>
+                        ))}
+                        {showExpiry && batches.map((sib, ei) => (
+                          <div key={`e-${ei}`} className="text-xs font-normal text-gray-600">
+                            Exp: {sib.batch?.expiryDate
+                              ? dayjs(sib.batch.expiryDate).format('DD/MM/YYYY')
+                              : 'N/A'}
+                          </div>
+                        ))}
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>
+
+      {/* Loyalty Points Block — shown only when points were earned or redeemed on this sale */}
+      {tenant?.loyaltyEnabled && (sale.pointsEarned > 0 || sale.pointsRedeemed > 0) && (
+        <div className="border-t border-b border-dashed border-gray-400 py-2 my-2 text-xs">
+          <p className="font-bold mb-1">LOYALTY POINTS</p>
+          {/* Redeemed row — only when points were spent for a discount */}
+          {sale.pointsRedeemed > 0 && (
+            <div className="flex justify-between">
+              <span>Points redeemed:</span>
+              <span>
+                -{sale.pointsRedeemed} pts
+                {sale.pointsDiscount > 0 && (
+                  <span> (-{currencySymbol}{Number(sale.pointsDiscount).toFixed(2)})</span>
+                )}
+              </span>
+            </div>
+          )}
+          {/* Earned row — only when points were awarded for this purchase */}
+          {sale.pointsEarned > 0 && (
+            <div className="flex justify-between">
+              <span>Points earned:</span>
+              <span>+{sale.pointsEarned} pts</span>
+            </div>
+          )}
+          {/* New balance — only when a customer account is linked to the sale */}
+          {sale.customer && (
+            <div className="flex justify-between font-semibold mt-1">
+              <span>New balance:</span>
+              <span>{sale.customer.loyaltyPoints} pts &#11088;</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Dispensing footer — patient signature and dispensed-by line for pharmacy receipts */}
+      {sale.prescription && tenant?.pharmacyMode && (
+        <div className="mb-3">
+          <p className="text-xs text-gray-600 mt-2">
+            Patient signature: _______________________________
+          </p>
+          <p className="text-xs text-gray-600 mt-2">
+            Dispensed by: {sale.user?.name || 'N/A'}
+          </p>
+        </div>
+      )}
 
       {/* Divider */}
       <div className="border-t border-dashed border-gray-400 my-2"></div>

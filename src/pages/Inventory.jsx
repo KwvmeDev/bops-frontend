@@ -4,8 +4,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../context/AuthContext';
 import { productsApi, categoriesApi } from '../api/client';
-import { Plus, Search, Edit2, Trash2, Package, AlertTriangle, X, Save, ChevronUp, ChevronDown, ChevronsUpDown, Wand2, Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Download } from 'lucide-react';
+import useLocation from '../hooks/useLocation';
+import { Plus, Search, Edit2, Trash2, Package, AlertTriangle, X, Save, ChevronUp, ChevronDown, ChevronsUpDown, Wand2, Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Download, ShoppingCart, FlaskConical } from 'lucide-react';
 import { toast, Skeleton } from '../components/ui';
+import POSheet from '../components/POSheet';
+import ExpiryManagement from './ExpiryManagement';
+// NOTE: BatchDisposalSheet will be imported here when subtask_08 creates it:
+// import BatchDisposalSheet from '../components/BatchDisposalSheet';
 
 const SORT_FIELDS = { name: 'name', sellingPrice: 'sellingPrice', stock: 'stock' };
 
@@ -391,7 +396,14 @@ function ProductModal({ product, categories, tenant, onClose, onSaved }) {
 
 export default function Inventory() {
   const { tenant, hasMinRole, currencySymbol } = useAuth();
+  const { activeLocation, isMultiLocation } = useLocation();
   const [searchParams] = useSearchParams();
+
+  // Top-level inventory tab — 'products' or 'expiry' (expiry only when pharmacyMode)
+  const [inventoryTab, setInventoryTab] = useState(
+    searchParams.get('tab') === 'expiry' && tenant?.pharmacyMode ? 'expiry' : 'products'
+  );
+
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -401,6 +413,10 @@ export default function Inventory() {
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [sort, setSort] = useState({ field: 'name', dir: 'asc' });
+  const [reorderSheetOpen, setReorderSheetOpen] = useState(false);
+  const [reorderProduct, setReorderProduct] = useState(null);
+  // selectedBatch drives BatchDisposalSheet; set by ExpiryManagement rows
+  const [selectedBatch, setSelectedBatch] = useState(null);
   const undoTimers = useRef({});
 
   const canManage = hasMinRole('MANAGER');
@@ -504,6 +520,70 @@ export default function Inventory() {
         )}
       </motion.div>
 
+      {/* Top-level inventory tabs — "Expiry" only visible when pharmacyMode is on */}
+      {tenant?.pharmacyMode && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.04 }}
+          className="flex gap-1 bg-surface-subtle border border-surface-muted/50 rounded-2xl p-1 mb-4 flex-wrap"
+        >
+          {[
+            { id: 'products', label: 'Products', icon: Package },
+            { id: 'expiry',   label: 'Expiry',   icon: FlaskConical },
+          ].map(tab => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setInventoryTab(tab.id)}
+                className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors z-10 ${
+                  inventoryTab === tab.id ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                {inventoryTab === tab.id && (
+                  <motion.div
+                    layoutId="inventory-tab"
+                    className="absolute inset-0 bg-surface-muted rounded-xl"
+                    transition={{ type: 'spring', damping: 22, stiffness: 280 }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center gap-2">
+                  <Icon className="w-3.5 h-3.5" />
+                  {tab.label}
+                </span>
+              </button>
+            );
+          })}
+        </motion.div>
+      )}
+
+      {/* Expiry tab — pharmacy mode only */}
+      {inventoryTab === 'expiry' && tenant?.pharmacyMode && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22 }}
+        >
+          {/* onDispose sets selectedBatch; BatchDisposalSheet (subtask_08) reads it */}
+          <ExpiryManagement
+            onDispose={setSelectedBatch}
+            refreshKey={selectedBatch === null ? 1 : 0}
+          />
+          {/* BatchDisposalSheet placeholder — uncomment import above when subtask_08 ships:
+          <BatchDisposalSheet
+            batch={selectedBatch}
+            open={!!selectedBatch}
+            onClose={() => setSelectedBatch(null)}
+            onSuccess={() => setSelectedBatch(null)}
+          /> */}
+        </motion.div>
+      )}
+
+      {/* Products tab — always visible; hidden only when expiry tab is active */}
+      {inventoryTab !== 'expiry' && (
+        <>
+
       {/* Filters */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
         className="bg-surface-subtle border border-surface-muted/50 rounded-2xl p-4 mb-4 flex flex-col md:flex-row gap-3">
@@ -562,7 +642,7 @@ export default function Inventory() {
             <p className="text-sm">No products found</p>
             {canManage && (
               <button onClick={() => { setEditingProduct(null); setShowModal(true); }} className="mt-3 text-xs text-brand-light hover:text-brand transition-colors">
-                Add your first product →
+                Add your first product 
               </button>
             )}
           </div>
@@ -614,19 +694,49 @@ export default function Inventory() {
                   <div className="flex items-center justify-between pt-0.5">
                     {canManage ? (
                       <div className="flex items-center gap-2">
-                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleStockAdjust(product, -1)} disabled={product.stock === 0}
+                        <motion.button
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => handleStockAdjust(product, -1)}
+                          disabled={product.stock === 0 || activeLocation?.id === '__all__'}
+                          title={activeLocation?.id === '__all__' ? 'Select a specific location to adjust stock' : undefined}
                           className="w-7 h-7 rounded-lg bg-surface-muted hover:bg-surface-overlay flex items-center justify-center text-zinc-400 disabled:opacity-30 transition-colors text-sm font-bold">−</motion.button>
-                        <span className={`w-8 text-center text-sm font-semibold ${isOut ? 'text-danger-light' : isLow ? 'text-warning' : 'text-zinc-200'}`}>{product.stock}</span>
-                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleStockAdjust(product, 1)}
-                          className="w-7 h-7 rounded-lg bg-surface-muted hover:bg-surface-overlay flex items-center justify-center text-zinc-400 transition-colors text-sm font-bold">+</motion.button>
+                        {/* Aggregate view: show total with label */}
+                        {activeLocation?.id === '__all__' ? (
+                          <div className="text-center">
+                            <span className={`text-sm font-semibold ${isOut ? 'text-danger-light' : isLow ? 'text-warning' : 'text-zinc-200'}`}>{product.stock}</span>
+                            <p className="text-xs text-zinc-600 leading-none">total</p>
+                          </div>
+                        ) : (
+                          <span className={`w-8 text-center text-sm font-semibold ${isOut ? 'text-danger-light' : isLow ? 'text-warning' : 'text-zinc-200'}`}>{product.stock}</span>
+                        )}
+                        <motion.button
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => handleStockAdjust(product, 1)}
+                          disabled={activeLocation?.id === '__all__'}
+                          title={activeLocation?.id === '__all__' ? 'Select a specific location to adjust stock' : undefined}
+                          className="w-7 h-7 rounded-lg bg-surface-muted hover:bg-surface-overlay flex items-center justify-center text-zinc-400 disabled:opacity-30 transition-colors text-sm font-bold">+</motion.button>
                       </div>
                     ) : (
-                      <span className={`text-sm font-medium ${isOut ? 'text-danger-light' : isLow ? 'text-warning' : 'text-zinc-200'}`}>
-                        {product.stock} in stock
-                      </span>
+                      // Non-manager: aggregate label when in all-locations view
+                      activeLocation?.id === '__all__' ? (
+                        <div>
+                          <span className={`text-sm font-medium ${isOut ? 'text-danger-light' : isLow ? 'text-warning' : 'text-zinc-200'}`}>{product.stock}</span>
+                          <span className="text-xs text-zinc-600 ml-1">across all locations</span>
+                        </div>
+                      ) : (
+                        <span className={`text-sm font-medium ${isOut ? 'text-danger-light' : isLow ? 'text-warning' : 'text-zinc-200'}`}>
+                          {product.stock} in stock
+                        </span>
+                      )
                     )}
                     {canManage && (
                       <div className="flex items-center gap-1">
+                        <motion.button whileTap={{ scale: 0.9 }}
+                          onClick={() => { setReorderProduct({ id: product.id, name: product.name, costPrice: product.costPrice }); setReorderSheetOpen(true); }}
+                          title="Create purchase order for this product"
+                          className="p-2 text-zinc-500 hover:text-brand-light hover:bg-brand/10 rounded-lg transition-colors">
+                          <ShoppingCart className="w-4 h-4" />
+                        </motion.button>
                         <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setEditingProduct(product); setShowModal(true); }}
                           className="p-2 text-zinc-500 hover:text-brand-light hover:bg-brand/10 rounded-lg transition-colors">
                           <Edit2 className="w-4 h-4" />
@@ -689,7 +799,7 @@ export default function Inventory() {
                     <p className="text-sm text-zinc-600">No products found</p>
                     {canManage && (
                       <button onClick={() => { setEditingProduct(null); setShowModal(true); }} className="mt-3 text-xs text-brand-light hover:text-brand transition-colors">
-                        Add your first product →
+                        Add your first product 
                       </button>
                     )}
                   </td>
@@ -720,14 +830,38 @@ export default function Inventory() {
                         <td className="px-4 py-3.5">
                           {canManage ? (
                             <div className="flex items-center gap-2">
-                              <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleStockAdjust(product, -1)} disabled={product.stock === 0}
+                              <motion.button
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => handleStockAdjust(product, -1)}
+                                disabled={product.stock === 0 || activeLocation?.id === '__all__'}
+                                title={activeLocation?.id === '__all__' ? 'Select a specific location to adjust stock' : undefined}
                                 className="w-6 h-6 rounded bg-surface-muted hover:bg-surface-overlay flex items-center justify-center text-zinc-400 disabled:opacity-30 transition-colors text-xs font-bold">−</motion.button>
-                              <span className={`w-10 text-center text-sm font-medium ${isOut ? 'text-danger-light' : isLow ? 'text-warning' : 'text-zinc-200'}`}>{product.stock}</span>
-                              <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleStockAdjust(product, 1)}
-                                className="w-6 h-6 rounded bg-surface-muted hover:bg-surface-overlay flex items-center justify-center text-zinc-400 transition-colors text-xs font-bold">+</motion.button>
+                              {/* Aggregate view: show stock with "total" label; specific location: plain number */}
+                              {activeLocation?.id === '__all__' ? (
+                                <div className="w-16 text-center">
+                                  <span className={`text-sm font-bold ${isOut ? 'text-danger-light' : isLow ? 'text-warning' : 'text-zinc-200'}`}>{product.stock}</span>
+                                  <p className="text-xs text-zinc-600 leading-none mt-0.5">total</p>
+                                </div>
+                              ) : (
+                                <span className={`w-10 text-center text-sm font-medium ${isOut ? 'text-danger-light' : isLow ? 'text-warning' : 'text-zinc-200'}`}>{product.stock}</span>
+                              )}
+                              <motion.button
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => handleStockAdjust(product, 1)}
+                                disabled={activeLocation?.id === '__all__'}
+                                title={activeLocation?.id === '__all__' ? 'Select a specific location to adjust stock' : undefined}
+                                className="w-6 h-6 rounded bg-surface-muted hover:bg-surface-overlay flex items-center justify-center text-zinc-400 disabled:opacity-30 transition-colors text-xs font-bold">+</motion.button>
                             </div>
                           ) : (
-                            <span className={`text-sm font-medium ${isOut ? 'text-danger-light' : isLow ? 'text-warning' : 'text-zinc-200'}`}>{product.stock}</span>
+                            // Non-manager: show aggregate label when in all-locations view
+                            activeLocation?.id === '__all__' ? (
+                              <div>
+                                <span className={`text-sm font-medium ${isOut ? 'text-danger-light' : isLow ? 'text-warning' : 'text-zinc-200'}`}>{product.stock}</span>
+                                <p className="text-xs text-zinc-600">across all locations</p>
+                              </div>
+                            ) : (
+                              <span className={`text-sm font-medium ${isOut ? 'text-danger-light' : isLow ? 'text-warning' : 'text-zinc-200'}`}>{product.stock}</span>
+                            )
                           )}
                         </td>
                         <td className="px-4 py-3.5">
@@ -744,6 +878,12 @@ export default function Inventory() {
                         {canManage && (
                           <td className="px-4 py-3.5">
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <motion.button whileTap={{ scale: 0.9 }}
+                                onClick={() => { setReorderProduct({ id: product.id, name: product.name, costPrice: product.costPrice }); setReorderSheetOpen(true); }}
+                                title="Reorder — create purchase order"
+                                className="p-1.5 text-zinc-500 hover:text-brand-light hover:bg-brand/10 rounded-lg transition-colors">
+                                <ShoppingCart className="w-3.5 h-3.5" />
+                              </motion.button>
                               <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setEditingProduct(product); setShowModal(true); }}
                                 className="p-1.5 text-zinc-500 hover:text-brand-light hover:bg-brand/10 rounded-lg transition-colors">
                                 <Edit2 className="w-3.5 h-3.5" />
@@ -784,6 +924,17 @@ export default function Inventory() {
           />
         )}
       </AnimatePresence>
+
+      {/* Quick-reorder sheet — opens pre-populated with the selected product */}
+      <POSheet
+        open={reorderSheetOpen}
+        onOpenChange={setReorderSheetOpen}
+        initialProduct={reorderProduct}
+        onSuccess={() => { setReorderSheetOpen(false); setReorderProduct(null); }}
+      />
+
+        </> /* end inventoryTab !== 'expiry' wrapper */
+      )}
     </div>
   );
 }

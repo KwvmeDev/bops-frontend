@@ -55,13 +55,14 @@ export function Th({ sortKey, currentSort, onSort, className, children }) {
   );
 }
 
-export function Tr({ className, children }) {
+export function Tr({ className, children, ...props }) {
   return (
     <motion.tr
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
       className={cn('border-b border-surface-muted/30 hover:bg-surface-muted/40 transition-colors', className)}
+      {...props}
     >
       {children}
     </motion.tr>

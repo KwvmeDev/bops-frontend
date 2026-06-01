@@ -1,13 +1,23 @@
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
-import { Minus, Plus, Trash2, CreditCard, Banknote, Smartphone, ShoppingCart, Loader2 } from 'lucide-react';
+import { Minus, Plus, Trash2, CreditCard, Banknote, Smartphone, ShoppingCart, Loader2, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useEffect } from 'react';
+import UnitSelector from './UnitSelector';
+import LoyaltyRedemptionInput from './LoyaltyRedemptionInput';
 
 const PAYMENT_METHODS = [
   { id: 'CASH',         label: 'Cash',   icon: Banknote },
   { id: 'CARD',         label: 'Card',   icon: CreditCard },
   { id: 'MOBILE_MONEY', label: 'Mobile', icon: Smartphone },
 ];
+
+// Tier badge colour map — matches LoyaltyTier enum values from the schema
+const TIER_STYLES = {
+  STANDARD: 'bg-zinc-700 text-zinc-300',
+  SILVER:   'bg-slate-600 text-slate-200',
+  GOLD:     'bg-yellow-600/80 text-yellow-100',
+  PLATINUM: 'bg-purple-700/80 text-purple-100',
+};
 
 function AnimatedTotal({ value, prefix }) {
   const spring = useSpring(value, { stiffness: 120, damping: 20 });
@@ -16,13 +26,61 @@ function AnimatedTotal({ value, prefix }) {
   return <motion.span>{display}</motion.span>;
 }
 
-export default function Cart({ items, onUpdateQuantity, onRemoveItem, onClearCart, onCheckout, paymentMethod, onPaymentMethodChange, loading, variant = 'sidebar' }) {
+/**
+ * Cart — sidebar or bottom-sheet cart component.
+ *
+ * Loyalty props (all optional; loyalty UI is suppressed when not provided):
+ *   customer             {object|null}  Selected customer with loyaltyPoints + loyaltyTier
+ *   loyaltyEnabled       {bool}         Comes from tenant.loyaltyEnabled
+ *   pointsToRedeem       {number}       Controlled: points the cashier has chosen to redeem
+ *   onPointsToRedeemChange {fn}         Called with new points int when input changes
+ *   onCustomerSelect     {fn}           Called with customer object or null (deselect)
+ *   pointsValue          {number}       Monetary value per point (e.g. 0.01)
+ */
+export default function Cart({
+  items,
+  onUpdateQuantity,
+  onRemoveItem,
+  onClearCart,
+  onCheckout,
+  paymentMethod,
+  onPaymentMethodChange,
+  loading,
+  variant = 'sidebar',
+  momoPhone = '',
+  onMomoPhoneChange = () => {},
+  onUnitChange,
+  // Loyalty-specific props
+  customer = null,
+  loyaltyEnabled = false,
+  pointsToRedeem = 0,
+  onPointsToRedeemChange = () => {},
+  onCustomerSelect = () => {},
+  pointsValue = 0.01,
+}) {
   const { tenant, currencySymbol } = useAuth();
   const sym = currencySymbol;
   const taxRate = tenant?.taxRate || 0;
+
   const subtotal = items.reduce((s, i) => s + i.sellingPrice * i.quantity, 0);
   const taxAmount = subtotal * taxRate;
-  const total = subtotal + taxAmount;
+
+  // Loyalty discount: only apply when feature is active and a customer is attached
+  const showLoyalty = loyaltyEnabled && customer != null;
+  // Cap redemption so discount never exceeds what's owed (pre-discount total)
+  const maxAffordablePoints = pointsValue > 0
+    ? Math.floor((subtotal + taxAmount) / pointsValue)
+    : 0;
+  const effectivePoints = showLoyalty ? Math.min(pointsToRedeem, maxAffordablePoints) : 0;
+  const loyaltyDiscount = effectivePoints * pointsValue;
+
+  const total = subtotal + taxAmount - loyaltyDiscount;
+
+  // Deselect customer: clear customer ref and zero out any redeemed points
+  function handleDeselectCustomer() {
+    onCustomerSelect(null);
+    onPointsToRedeemChange(0);
+  }
 
   return (
     <div className={`flex flex-col bg-surface-subtle${variant === 'sidebar' ? ' h-full border-l border-surface-muted/50' : ''}`}>
@@ -58,6 +116,45 @@ export default function Cart({ items, onUpdateQuantity, onRemoveItem, onClearCar
           )}
         </AnimatePresence>
       </div>
+
+      {/* Customer display row — shown when a customer is linked to this sale */}
+      <AnimatePresence>
+        {showLoyalty && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.18, ease: 'easeInOut' }}
+            className="overflow-hidden flex-shrink-0"
+          >
+            <div className="px-4 py-2 border-b border-surface-muted/30 flex items-center gap-2">
+              {/* Customer name */}
+              <span className="text-xs font-medium text-zinc-200 flex-1 truncate">
+                {customer.name}
+              </span>
+              {/* Loyalty tier badge */}
+              {customer.loyaltyTier && (
+                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide ${TIER_STYLES[customer.loyaltyTier] ?? TIER_STYLES.STANDARD}`}>
+                  {customer.loyaltyTier}
+                </span>
+              )}
+              {/* Points balance pill */}
+              <span className="text-[11px] text-yellow-400 font-medium whitespace-nowrap">
+                {(customer.loyaltyPoints ?? 0).toLocaleString()} pts
+              </span>
+              {/* Deselect customer */}
+              <button
+                type="button"
+                onClick={handleDeselectCustomer}
+                className="p-0.5 text-zinc-600 hover:text-zinc-300 transition-colors flex-shrink-0"
+                aria-label="Remove customer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Items */}
       <div className={variant === 'sheet' ? 'max-h-[46vh] overflow-y-auto' : 'flex-1 overflow-y-auto'}>
@@ -129,6 +226,15 @@ export default function Cart({ items, onUpdateQuantity, onRemoveItem, onClearCar
                       {sym}{(item.sellingPrice * item.quantity).toFixed(2)}
                     </span>
                   </div>
+
+                  {/* Unit selector — only visible in pharmacy mode when product has units */}
+                  {tenant?.pharmacyMode === true && item.units?.length > 0 && onUnitChange && (
+                    <UnitSelector
+                      units={item.units}
+                      selectedUnitId={item.unitId}
+                      onChange={(unit) => onUnitChange(item.id, unit)}
+                    />
+                  )}
                 </motion.div>
               ))}
             </div>
@@ -145,6 +251,30 @@ export default function Cart({ items, onUpdateQuantity, onRemoveItem, onClearCar
             exit={{ opacity: 0, y: 8 }}
             className="flex-shrink-0 border-t border-surface-muted/50"
           >
+            {/* Loyalty redemption input — shown between customer row and payment section */}
+            <AnimatePresence>
+              {showLoyalty && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.18, ease: 'easeInOut' }}
+                  className="overflow-hidden pt-2"
+                >
+                  <LoyaltyRedemptionInput
+                    customer={customer}
+                    value={pointsToRedeem}
+                    onChange={onPointsToRedeemChange}
+                    onRedeem={onPointsToRedeemChange}
+                    onSkip={() => onPointsToRedeemChange(0)}
+                    pointsValue={pointsValue}
+                    currencySymbol={sym}
+                    maxAffordable={maxAffordablePoints}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Payment method */}
             <div className="px-4 pt-3 pb-2">
               <p className="text-xs text-zinc-500 mb-2">Payment method</p>
@@ -165,6 +295,28 @@ export default function Cart({ items, onUpdateQuantity, onRemoveItem, onClearCar
                   </motion.button>
                 ))}
               </div>
+
+              {/* MoMo phone number input — only visible when Mobile Money is selected */}
+              <AnimatePresence>
+                {paymentMethod === 'MOBILE_MONEY' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.18, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
+                    <p className="text-xs text-zinc-500 mt-2 mb-1">MoMo number</p>
+                    <input
+                      type="tel"
+                      placeholder="MoMo number (+233...)"
+                      value={momoPhone}
+                      onChange={e => onMomoPhoneChange(e.target.value)}
+                      className="w-full mt-0 px-3 py-2 rounded-lg bg-surface-base border border-surface-muted/50 text-zinc-200 text-sm placeholder-zinc-600 focus:outline-none focus:border-brand/50"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Totals */}
@@ -179,6 +331,23 @@ export default function Cart({ items, onUpdateQuantity, onRemoveItem, onClearCar
                   <span>{sym}{taxAmount.toFixed(2)}</span>
                 </div>
               )}
+              {/* Points discount line — only shown when points are being redeemed */}
+              <AnimatePresence>
+                {showLoyalty && effectivePoints > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="flex justify-between text-xs text-yellow-500">
+                      <span>Points discount ({effectivePoints.toLocaleString()} pts)</span>
+                      <span>-{sym}{loyaltyDiscount.toFixed(2)}</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
               <div className="flex justify-between text-sm font-bold text-zinc-100 pt-1.5 border-t border-surface-muted/50">
                 <span>Total</span>
                 <AnimatedTotal value={total} prefix={sym} />

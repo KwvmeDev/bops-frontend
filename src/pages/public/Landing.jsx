@@ -336,10 +336,11 @@ function HowItWorksSection() {
 }
 
 /* ─── Section: Pricing ─── */
+// Prices are always stored in USD. convertPrice() handles GHS conversion for Ghana visitors.
 const PLANS = [
   {
     name: 'Starter',
-    price: 299,
+    price: 29,
     desc: 'Perfect for a single-location shop.',
     features: ['1 location', '3 team members', 'Unlimited sales', 'Basic reports', 'Email support'],
     cta: 'Start free trial',
@@ -347,7 +348,7 @@ const PLANS = [
   },
   {
     name: 'Pro',
-    price: 799,
+    price: 79,
     desc: 'For growing businesses with more needs.',
     features: ['3 locations', 'Unlimited team', 'Unlimited sales', 'Full reports + profit', 'Priority support', 'Inventory alerts'],
     cta: 'Start free trial',
@@ -356,7 +357,7 @@ const PLANS = [
   },
   {
     name: 'Enterprise',
-    price: 1999,
+    price: 199,
     desc: 'For large retail operations.',
     features: ['Unlimited locations', 'Unlimited team', 'Unlimited sales', 'Custom integrations', 'Dedicated support', 'SLA guarantee'],
     cta: 'Contact sales',
@@ -365,7 +366,10 @@ const PLANS = [
 ];
 
 function PricingSection() {
-  const { currencySymbol, convertPrice } = useAuth();
+  const { geoSymbol, convertPrice } = useAuth();
+  // Use geo-detected symbol for pricing display (not tenant setting — visitor may not be logged in).
+  // Falls back to '$' while geo resolves or for non-Ghana visitors.
+  const displaySymbol = geoSymbol ?? '$';
   return (
     <section id="pricing" className="py-32 px-6">
       <div className="max-w-5xl mx-auto">
@@ -404,7 +408,7 @@ function PricingSection() {
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-zinc-400 mb-1">{plan.name}</h3>
                 <div className="flex items-end gap-1 mb-2">
-                  <span className="text-4xl font-bold text-zinc-100">{currencySymbol}{convertPrice(plan.price).toLocaleString()}</span>
+                  <span className="text-4xl font-bold text-zinc-100">{displaySymbol}{convertPrice(plan.price).toLocaleString()}</span>
                   <span className="text-zinc-500 text-sm mb-1">/mo</span>
                 </div>
                 <p className="text-xs text-zinc-500">{plan.desc}</p>

@@ -1,6 +1,12 @@
 {
   "name": "Klevr",
   "short_name": "Klevr",
+  "description": "Point of sale for small retail businesses",
+  "start_url": "/sales",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#09090b",
+  "background_color": "#09090b",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",
@@ -14,8 +20,5 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ],
-  "theme_color": "#09090b",
-  "background_color": "#09090b",
-  "display": "standalone"
+  ]
 }

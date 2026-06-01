@@ -3,11 +3,14 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import useLocation from '../hooks/useLocation';
 import {
   LayoutDashboard, ShoppingCart, Package, BarChart3,
   Settings, Users, LogOut, ChevronLeft, ChevronRight,
-  Menu, Sun, Moon,
+  Menu, Sun, Moon, ArrowLeftRight, Truck, Receipt, Pill, UsersRound,
 } from 'lucide-react';
+import ConnectivityBadge from './ConnectivityBadge';
+import LocationSwitcher from './LocationSwitcher';
 import LowStockBadge from './LowStockBadge';
 import TrialBanner from './TrialBanner';
 import EmailVerificationBanner from './EmailVerificationBanner';
@@ -17,20 +20,34 @@ import { Avatar } from './ui';
 export default function Layout() {
   const { user, tenant, logout, hasMinRole } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { isMultiLocation } = useLocation();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const handleLogout = () => { logout(); navigate('/'); };
+  const handleLogout = async () => { await logout(); navigate('/'); };
 
   const navItems = [
-    { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/sales',     icon: ShoppingCart,   label: 'Sales' },
-    { to: '/inventory', icon: Package,        label: 'Inventory', badge: <LowStockBadge /> },
-    { to: '/reports',   icon: BarChart3,      label: 'Reports',   minRole: 'MANAGER' },
-    { to: '/settings',  icon: Settings,       label: 'Settings',  minRole: 'MANAGER' },
-    { to: '/users',     icon: Users,          label: 'Users',     minRole: 'OWNER' },
+    { to: '/dashboard',       icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/sales',           icon: ShoppingCart,    label: 'Sales' },
+    { to: '/inventory',       icon: Package,         label: 'Inventory', badge: <LowStockBadge /> },
+    { to: '/reports',         icon: BarChart3,       label: 'Reports',   minRole: 'MANAGER' },
+    // Transfers nav item — only rendered for multi-location tenants
+    { to: '/stock-transfers', icon: ArrowLeftRight,  label: 'Transfers',       minRole: 'MANAGER', multiLocationOnly: true },
+    { to: '/purchase-orders', icon: Truck,           label: 'Purchase Orders', minRole: 'MANAGER' },
+    { to: '/expenses',        icon: Receipt,         label: 'Expenses',        minRole: 'MANAGER' },
+    // Customers — visible to MANAGER+ regardless of feature flags
+    { to: '/customers',       icon: UsersRound,      label: 'Customers',       minRole: 'MANAGER' },
+    // Pharmacy: Prescriptions — visible only when pharmacyMode is enabled, CASHIER+
+    ...(tenant?.pharmacyMode ? [
+      { to: '/prescriptions', icon: Pill, label: 'Prescriptions', minRole: 'CASHIER', pharmacyOnly: true },
+    ] : []),
+    { to: '/settings',        icon: Settings,        label: 'Settings',        minRole: 'MANAGER' },
+    { to: '/users',           icon: Users,           label: 'Users',     minRole: 'OWNER' },
   ];
+
+  // Hide items that require multiple locations when tenant is single-location
+  const filteredNavItems = navItems.filter(item => !item.multiLocationOnly || isMultiLocation);
 
   const SidebarContent = ({ mobile = false }) => (
     <div className="flex flex-col h-full">
@@ -83,9 +100,12 @@ export default function Layout() {
         )}
       </div>
 
+      {/* Branch switcher — hidden automatically for single-location tenants */}
+      <LocationSwitcher />
+
       {/* Nav */}
       <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           if (item.minRole && !hasMinRole(item.minRole)) return null;
           return (
             <NavLink
@@ -209,8 +229,10 @@ export default function Layout() {
             <span className="md:hidden font-semibold text-zinc-100 text-sm">{tenant?.name || 'Klevr'}</span>
           </div>
 
-          {/* Right: theme toggle + divider + logout */}
+          {/* Right: connectivity badge + theme toggle + divider + logout */}
           <div className="flex items-center gap-1">
+            <ConnectivityBadge />
+
             {/* Theme toggle */}
             <motion.button
               whileTap={{ scale: 0.94 }}

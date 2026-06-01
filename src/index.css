@@ -71,16 +71,16 @@
 /* ─── Light mode overrides ─── */
 /* Placed outside @theme so they override at element level (CSS cascade) */
 [data-theme="light"] {
-  /* Surfaces → light */
+  /* Surfaces  light */
   --color-surface-base:    #f8fafc;
   --color-surface-subtle:  #ffffff;
   --color-surface-muted:   #f1f5f9;
   --color-surface-overlay: #e2e8f0;
 
-  /* Brand-subtle → light tint */
+  /* Brand-subtle  light tint */
   --color-brand-subtle: #dcfce7;
 
-  /* Zinc scale → inverted (zinc-100 becomes near-black, zinc-900 becomes near-white) */
+  /* Zinc scale  inverted (zinc-100 becomes near-black, zinc-900 becomes near-white) */
   --color-zinc-50:  #09090b;
   --color-zinc-100: #18181b;
   --color-zinc-200: #27272a;
@@ -134,15 +134,50 @@
   }
 }
 
+/* ─── Date input native picker indicator ─── */
+/* Inputs in Reports.jsx hardcode colorScheme:'dark' so the native calendar
+   icon is readable on dark surfaces. In light mode the indicator would
+   render as a light icon against a white background and become invisible.
+   This rule overrides to the light scheme whenever the light theme is active. */
+[data-theme="light"] input[type="date"] {
+  color-scheme: light !important;
+}
+
 /* ─── Print styles ─── */
 @media print {
   .no-print { display: none !important; }
+  .print-only { display: block !important; }
+
+  /* Force light-mode colour tokens regardless of the active theme.
+     Overrides both the @theme defaults (dark) and any [data-theme="dark"]
+     overrides so printed output is always readable on white paper. */
+  :root, [data-theme], [data-theme="dark"] {
+    --color-surface-base:    #f8fafc !important;
+    --color-surface-subtle:  #ffffff !important;
+    --color-surface-muted:   #f1f5f9 !important;
+    --color-surface-overlay: #e2e8f0 !important;
+
+    --color-brand-subtle: #dcfce7 !important;
+
+    --color-zinc-50:  #09090b !important;
+    --color-zinc-100: #18181b !important;
+    --color-zinc-200: #27272a !important;
+    --color-zinc-300: #3f3f46 !important;
+    --color-zinc-400: #52525b !important;
+    --color-zinc-500: #71717a !important;
+    --color-zinc-600: #a1a1aa !important;
+    --color-zinc-700: #d4d4d8 !important;
+    --color-zinc-800: #e4e4e7 !important;
+    --color-zinc-900: #f4f4f5 !important;
+    --color-zinc-950: #fafafa !important;
+  }
+
   body {
     background: white !important;
+    color: #18181b !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  .print-only { display: block !important; }
 }
 
 .print-only { display: none; }

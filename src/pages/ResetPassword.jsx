@@ -64,7 +64,7 @@ export default function ResetPassword() {
           <h2 className="text-xl font-bold text-zinc-100 mb-2">Invalid link</h2>
           <p className="text-zinc-500 text-sm mb-6">This password reset link is invalid or has expired.</p>
           <Link to="/forgot-password" className="text-brand-light hover:text-brand text-sm font-medium transition-colors">
-            Request a new link →
+            Request a new link 
           </Link>
         </motion.div>
       </div>

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { motion, useSpring, useTransform } from 'framer-motion';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { BarChart, Bar, ResponsiveContainer } from 'recharts';
 import { cn } from '../../lib/utils';
 
 function AnimatedNumber({ value, prefix = '', suffix = '', decimals = 0 }) {
@@ -14,9 +15,14 @@ function AnimatedNumber({ value, prefix = '', suffix = '', decimals = 0 }) {
   return <motion.span>{display}</motion.span>;
 }
 
-export default function StatCard({ title, value, prefix, suffix, decimals, trend, trendLabel, icon: Icon, className }) {
+export default function StatCard({ title, value, prefix, suffix, decimals, trend, trendLabel, icon: Icon, className, sparklineData, color = '#6366f1' }) {
   const trendPositive = trend > 0;
   const trendNeutral = trend === 0 || trend == null;
+
+  // Normalise sparkline payload — each entry must be { v: number } for the Bar dataKey
+  const sparkPoints = Array.isArray(sparklineData) && sparklineData.length > 0
+    ? sparklineData.map((entry) => ({ v: typeof entry === 'number' ? entry : (entry?.value ?? entry?.total ?? 0) }))
+    : null;
 
   return (
     <motion.div
@@ -50,6 +56,16 @@ export default function StatCard({ title, value, prefix, suffix, decimals, trend
             {trendNeutral ? <Minus className="w-3 h-3" /> : trendPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
           </motion.span>
           {trendLabel}
+        </div>
+      )}
+      {/* 7-day mini sparkline — only rendered when data is available, hidden when printing */}
+      {sparkPoints && (
+        <div className="print:hidden pt-1">
+          <ResponsiveContainer width="100%" height={40}>
+            <BarChart data={sparkPoints} margin={{ top: 0, right: 0, left: 0, bottom: 0 }} barCategoryGap="20%">
+              <Bar dataKey="v" fill={color} radius={[2, 2, 0, 0]} isAnimationActive={false} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       )}
     </motion.div>

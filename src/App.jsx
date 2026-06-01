@@ -3,6 +3,7 @@ import { AnimatePresence } from 'framer-motion';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { SubscriptionProvider } from './context/SubscriptionContext';
+import { LocationProvider } from './context/LocationContext';
 import { Toaster } from './components/ui/Toast';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
@@ -18,7 +19,14 @@ import Inventory from './pages/Inventory';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Users from './pages/Users';
+import StockTransfers from './pages/StockTransfers';
+import PurchaseOrders from './pages/PurchaseOrders';
+import Expenses from './pages/Expenses';
 import Onboarding from './pages/Onboarding';
+import PublicReceipt from './pages/PublicReceipt';
+import LocationPicker from './pages/LocationPicker';
+import Prescriptions from './pages/Prescriptions';
+import Customers from './pages/Customers';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -28,6 +36,9 @@ function AnimatedRoutes() {
         {/* Landing page */}
         <Route path="/" element={<Landing />} />
 
+        {/* Public receipt — no auth, no Layout */}
+        <Route path="/r/:token" element={<PublicReceipt />} />
+
         {/* Auth / public routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -35,6 +46,9 @@ function AnimatedRoutes() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/email-verified" element={<EmailVerified />} />
         <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+
+        {/* Location picker — protected, no sidebar layout */}
+        <Route path="pick-location" element={<ProtectedRoute><LocationPicker /></ProtectedRoute>} />
 
         {/* Protected app routes — pathless layout wrapper avoids '/' conflict */}
         <Route
@@ -71,6 +85,48 @@ function AnimatedRoutes() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="stock-transfers"
+            element={
+              <ProtectedRoute minRole="MANAGER">
+                <StockTransfers />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="purchase-orders"
+            element={
+              <ProtectedRoute minRole="MANAGER">
+                <PurchaseOrders />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="expenses"
+            element={
+              <ProtectedRoute minRole="MANAGER">
+                <Expenses />
+              </ProtectedRoute>
+            }
+          />
+          {/* Pharmacy: Prescriptions — CASHIER+ (feature-flagged in the page itself) */}
+          <Route
+            path="prescriptions"
+            element={
+              <ProtectedRoute minRole="CASHIER">
+                <Prescriptions />
+              </ProtectedRoute>
+            }
+          />
+          {/* Customers — MANAGER+ */}
+          <Route
+            path="customers"
+            element={
+              <ProtectedRoute minRole="MANAGER">
+                <Customers />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
         {/* Catch all */}
@@ -82,16 +138,18 @@ function AnimatedRoutes() {
 
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <SubscriptionProvider>
-          <BrowserRouter>
-            <AnimatedRoutes />
-            <Toaster />
-          </BrowserRouter>
-        </SubscriptionProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <BrowserRouter>
+      <ThemeProvider>
+        <AuthProvider>
+          <LocationProvider>
+            <SubscriptionProvider>
+              <AnimatedRoutes />
+              <Toaster />
+            </SubscriptionProvider>
+          </LocationProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </BrowserRouter>
   );
 }
 
