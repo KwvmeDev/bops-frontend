@@ -27,6 +27,7 @@ import PublicReceipt from './pages/PublicReceipt';
 import LocationPicker from './pages/LocationPicker';
 import Prescriptions from './pages/Prescriptions';
 import Customers from './pages/Customers';
+import ChatWidget from './components/ChatWidget';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -145,6 +146,7 @@ function App() {
             <SubscriptionProvider>
               <AnimatedRoutes />
               <Toaster />
+              <ChatWidget />
             </SubscriptionProvider>
           </LocationProvider>
         </AuthProvider>

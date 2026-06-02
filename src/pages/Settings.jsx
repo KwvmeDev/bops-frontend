@@ -54,7 +54,7 @@ const labelClass = "block text-xs font-medium text-zinc-400 mb-1.5";
 
 export default function Settings() {
   const { tenant, updateTenant, hasMinRole } = useAuth();
-  const { subscription, plan, isTrialing, trialDaysLeft, openUpgradeModal } = useSubscription();
+  const { subscription, plan, isTrialing, trialDaysLeft, openUpgradeModal, refresh: refreshSubscription } = useSubscription();
   // useLocation is imported for context compliance; localLocations is used for
   // the Locations tab since it needs to refresh after a new location is created.
   useLocation();
@@ -64,7 +64,10 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [savedKey, setSavedKey] = useState(0);
   const [cancelLoading, setCancelLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('general');
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = new URLSearchParams(window.location.search).get('tab');
+    return TABS.some(t => t.id === tab) ? tab : 'general';
+  });
   const [prevTab, setPrevTab] = useState('general');
   const [notifPrefs, setNotifPrefs] = useState({ dailySummary: false, lowStockAlerts: true, weeklyReport: false, trialReminders: true });
   const [savingNotif, setSavingNotif] = useState(false);
@@ -139,6 +142,31 @@ export default function Settings() {
       settingsApi.getNotificationPrefs().then(r => setNotifPrefs(r.data.data)).catch(() => {});
     }
   }, [activeTab, isOwner]);
+
+  // Detect Paystack checkout redirect: /settings?tab=billing&checkout=success&reference=xxx
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('checkout') !== 'success') return;
+    const reference = params.get('reference') || params.get('trxref');
+    if (!reference) return;
+
+    // Clean up URL immediately so a page refresh doesn't re-trigger verification
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete('checkout');
+    cleanUrl.searchParams.delete('reference');
+    cleanUrl.searchParams.delete('trxref');
+    window.history.replaceState({}, '', cleanUrl.toString());
+
+    billingApi.verifyCheckout(reference)
+      .then(() => {
+        toast.success('Subscription activated! Your plan has been upgraded.');
+        refreshSubscription();
+      })
+      .catch((err) => {
+        toast.error(err.response?.data?.error || 'Payment received but sync failed — please refresh or contact support.');
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Load export history when accounting tab becomes active
   useEffect(() => {

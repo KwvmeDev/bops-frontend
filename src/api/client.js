@@ -78,6 +78,8 @@ export const billingApi = {
   createCheckout: (paystackPlanCode) => client.post('/billing/checkout', { paystackPlanCode }),
   getManageInfo: () => client.get('/billing/manage'),
   cancelSubscription: () => client.post('/billing/cancel'),
+  // Called after Paystack redirects back — verifies the transaction and syncs the subscription
+  verifyCheckout: (reference) => client.get('/billing/verify-checkout', { params: { reference } }),
 };
 
 // Auth API
@@ -303,6 +305,11 @@ export const accountingApi = {
   exportQuickbooks: (params) => client.get('/accounting/export/quickbooks', { params, responseType: 'blob' }),
   // Log of past accounting exports (date, range, user)
   getHistory: (params) => client.get('/accounting/export/history', { params }),
+};
+
+// Support Chatbot API — public endpoint, no auth required
+export const chatApi = {
+  send: (messages) => client.post('/chat', { messages }),
 };
 
 export default client;
