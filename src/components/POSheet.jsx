@@ -141,46 +141,53 @@ function LineItemRow({ item, index, onChange, onRemove }) {
   const lineTotal = (Number(item.quantity) || 0) * (Number(item.unitCost) || 0);
 
   return (
-    <div className="grid grid-cols-[1fr_80px_100px_80px_32px] gap-2 items-center">
-      {/* Product name — read-only display */}
-      <span className="text-sm text-zinc-200 truncate py-2 px-1">{item.name}</span>
+    <div className="rounded-lg bg-zinc-800/50 px-3 pt-2.5 pb-3 space-y-2.5">
+      {/* Product name — full width, no truncation */}
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-sm font-medium text-zinc-100 leading-snug">{item.name}</span>
+        <button
+          type="button"
+          onClick={() => onRemove(index)}
+          className="p-1 text-zinc-600 hover:text-red-400 transition-colors rounded flex-shrink-0 -mt-0.5"
+          aria-label={`Remove ${item.name}`}
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
 
-      {/* Quantity */}
-      <input
-        type="number"
-        min="1"
-        step="1"
-        value={item.quantity}
-        onChange={(e) => onChange(index, 'quantity', e.target.value)}
-        className={inputCls + ' text-center'}
-        aria-label={`Quantity for ${item.name}`}
-      />
-
-      {/* Unit cost */}
-      <input
-        type="number"
-        min="0"
-        step="0.01"
-        value={item.unitCost}
-        onChange={(e) => onChange(index, 'unitCost', e.target.value)}
-        className={inputCls + ' text-right'}
-        aria-label={`Unit cost for ${item.name}`}
-      />
-
-      {/* Line total — read-only */}
-      <span className="text-sm text-zinc-300 text-right tabular-nums">
-        {lineTotal.toFixed(2)}
-      </span>
-
-      {/* Remove button */}
-      <button
-        type="button"
-        onClick={() => onRemove(index)}
-        className="p-1 text-zinc-600 hover:text-red-400 transition-colors rounded flex-shrink-0"
-        aria-label={`Remove ${item.name}`}
-      >
-        <X className="w-4 h-4" />
-      </button>
+      {/* Qty / Unit Cost / Total */}
+      <div className="grid grid-cols-3 gap-2">
+        <div>
+          <p className="text-xs text-zinc-500 mb-1 text-center">Qty</p>
+          <input
+            type="number"
+            min="1"
+            step="1"
+            value={item.quantity}
+            onChange={(e) => onChange(index, 'quantity', e.target.value)}
+            className={inputCls + ' text-center'}
+            aria-label={`Quantity for ${item.name}`}
+          />
+        </div>
+        <div>
+          <p className="text-xs text-zinc-500 mb-1 text-right">Unit Cost</p>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={item.unitCost}
+            onChange={(e) => onChange(index, 'unitCost', e.target.value)}
+            className={inputCls + ' text-right'}
+            aria-label={`Unit cost for ${item.name}`}
+          />
+        </div>
+        <div>
+          <p className="text-xs text-zinc-500 mb-1 text-right">Total</p>
+          <div className="w-full px-3 py-2.5 text-sm text-zinc-300 text-right tabular-nums font-medium">
+            {lineTotal.toFixed(2)}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -618,16 +625,6 @@ export default function POSheet({ open, onOpenChange, poId, initialProduct, onSu
                   </div>
                 )}
 
-                {/* Column headers */}
-                {items.length > 0 && (
-                  <div className="grid grid-cols-[1fr_80px_100px_80px_32px] gap-2 mb-1.5 px-1">
-                    <span className="text-xs text-zinc-500">Product</span>
-                    <span className="text-xs text-zinc-500 text-center">Qty</span>
-                    <span className="text-xs text-zinc-500 text-right">Unit Cost</span>
-                    <span className="text-xs text-zinc-500 text-right">Total</span>
-                    <span />
-                  </div>
-                )}
 
                 {/* Item rows */}
                 <div className="space-y-2">
@@ -636,16 +633,16 @@ export default function POSheet({ open, onOpenChange, poId, initialProduct, onSu
                       // Read-only item display
                       <div
                         key={item._key}
-                        className="grid grid-cols-[1fr_80px_100px_80px] gap-2 items-center px-1 py-2 rounded-lg bg-zinc-800/50"
+                        className="rounded-lg bg-zinc-800/50 px-3 py-2.5 space-y-1.5"
                       >
-                        <span className="text-sm text-zinc-200 truncate">{item.name}</span>
-                        <span className="text-sm text-zinc-400 text-center">{item.quantity}</span>
-                        <span className="text-sm text-zinc-400 text-right">
-                          {Number(item.unitCost).toFixed(2)}
-                        </span>
-                        <span className="text-sm text-zinc-300 text-right tabular-nums">
-                          {(Number(item.quantity) * Number(item.unitCost)).toFixed(2)}
-                        </span>
+                        <span className="text-sm font-medium text-zinc-200 block">{item.name}</span>
+                        <div className="flex items-center justify-between text-xs text-zinc-500">
+                          <span>Qty: <span className="text-zinc-300 font-medium">{item.quantity}</span></span>
+                          <span>@ <span className="text-zinc-300 font-medium">{Number(item.unitCost).toFixed(2)}</span> each</span>
+                          <span className="text-sm text-zinc-200 font-semibold tabular-nums">
+                            {(Number(item.quantity) * Number(item.unitCost)).toFixed(2)}
+                          </span>
+                        </div>
                       </div>
                     ) : (
                       <LineItemRow

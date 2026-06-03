@@ -101,7 +101,7 @@ export const productsApi = {
   create: (data) => client.post('/products', data),
   update: (id, data) => client.put(`/products/${id}`, data),
   delete: (id) => client.delete(`/products/${id}`),
-  adjustStock: (id, adjustment) => client.post(`/products/${id}/adjust-stock`, { adjustment }),
+  adjustStock: (id, adjustment, locationId) => client.post(`/products/${id}/adjust-stock`, { adjustment }, { params: { locationId } }),
   bulkUpload: (rows) => client.post('/products/bulk', { rows })
 };
 

@@ -15,8 +15,9 @@ import DrawerCloseSheet from '../components/DrawerCloseSheet';
 import PrescriptionSearchSheet from '../components/PrescriptionSearchSheet';
 import ManagerApprovalPrompt from '../components/ManagerApprovalPrompt';
 import { Sheet } from '../components/ui/Sheet';
-import { X, Printer, CheckCircle, ArrowRight, ShoppingCart, MessageCircle, Loader2, AlertTriangle, Link, UserPlus, Search, UserCheck } from 'lucide-react';
+import { X, Printer, CheckCircle, ArrowRight, ShoppingCart, MessageCircle, Loader2, AlertTriangle, Link, UserPlus, Search, UserCheck, PauseCircle, Clock } from 'lucide-react';
 import { toast } from '../components/ui';
+import SuspendedSalesSheet from '../components/SuspendedSalesSheet';
 
 // ── Tier badge colours — reuses the palette defined in Cart.jsx ───────────────
 const TIER_STYLES = {
@@ -250,6 +251,26 @@ export default function SalesScreen() {
   const [approvedByName, setApprovedByName] = useState(null);
   const [showManagerApproval, setShowManagerApproval] = useState(false);
 
+  // ── Suspended sales state ───────────────────────────────────────────────
+  const [suspendedSales, setSuspendedSales]   = useState([]);
+  const [showSuspended, setShowSuspended]     = useState(false);
+
+  // Load any carts placed on hold for this tenant on mount
+  useEffect(() => {
+    async function loadSuspended() {
+      try {
+        const saved = await db.suspendedSales
+          .where('tenantId').equals(user.tenantId)
+          .toArray();
+        setSuspendedSales(saved);
+      } catch {
+        // Non-critical — degrade silently
+      }
+    }
+    loadSuspended();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Drawer session state ─────────────────────────────────────────────────
   const [drawerSession, setDrawerSession] = useState(null);
   const [drawerOpenModalOpen, setDrawerOpenModalOpen] = useState(false);
@@ -363,6 +384,67 @@ export default function SalesScreen() {
     setApprovedBy(null);
     setApprovedByName(null);
   };
+
+  // ── Suspend / resume ────────────────────────────────────────────────────
+
+  const handleSuspend = async () => {
+    if (cartItems.length === 0) return;
+    const label = `Hold ${suspendedSales.length + 1}`;
+    const snapshot = {
+      tenantId: user.tenantId,
+      label,
+      createdAt: new Date().toISOString(),
+      total,
+      cartItems,
+      paymentMethod,
+      momoPhone,
+      selectedCustomer,
+      pointsToRedeem,
+      prescriptionId,
+      linkedPrescription,
+      approvedBy,
+      approvedByName,
+    };
+    try {
+      const localId = await db.suspendedSales.add(snapshot);
+      setSuspendedSales(prev => [...prev, { ...snapshot, localId }]);
+      // Reset all cart state for the next sale
+      handleClearCart();
+      setPaymentMethod('CASH');
+      setMomoPhone('');
+      setSelectedCustomer(null);
+      setPointsToRedeem(0);
+      toast.success(`Cart saved as "${label}"`);
+    } catch {
+      toast.error('Could not suspend sale — please try again');
+    }
+  };
+
+  const handleResume = async (suspended) => {
+    // Restore full cart state from the snapshot
+    setCartItems(suspended.cartItems);
+    setPaymentMethod(suspended.paymentMethod ?? 'CASH');
+    setMomoPhone(suspended.momoPhone ?? '');
+    setSelectedCustomer(suspended.selectedCustomer ?? null);
+    setPointsToRedeem(suspended.pointsToRedeem ?? 0);
+    setPrescriptionId(suspended.prescriptionId ?? null);
+    setLinkedPrescription(suspended.linkedPrescription ?? null);
+    setApprovedBy(suspended.approvedBy ?? null);
+    setApprovedByName(suspended.approvedByName ?? null);
+    // Remove from hold list
+    await db.suspendedSales.delete(suspended.localId);
+    setSuspendedSales(prev => prev.filter(s => s.localId !== suspended.localId));
+    setShowSuspended(false);
+    toast.success(`"${suspended.label}" resumed`);
+  };
+
+  const handleDiscardSuspended = async (localId) => {
+    await db.suspendedSales.delete(localId);
+    setSuspendedSales(prev => prev.filter(s => s.localId !== localId));
+    toast.success('Hold discarded');
+  };
+
+  // ── Checkout ─────────────────────────────────────────────────────────────
 
   const handleCheckout = async () => {
     if (cartItems.length === 0) return;
@@ -663,7 +745,38 @@ export default function SalesScreen() {
       </div>
 
       {/* Cart sidebar — desktop only */}
-      <div className="hidden md:block w-80 lg:w-96 flex-shrink-0 overflow-hidden">
+      <div className="hidden md:flex md:flex-col w-80 lg:w-96 flex-shrink-0 overflow-hidden">
+
+        {/* Suspend toolbar — shown when cart has items or there are holds */}
+        {(cartItems.length > 0 || suspendedSales.length > 0) && (
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-surface-muted/40 flex-shrink-0 bg-surface-subtle">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={handleSuspend}
+              disabled={cartItems.length === 0}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-100 hover:bg-surface-muted disabled:opacity-30 disabled:cursor-not-allowed rounded-lg transition-colors border border-surface-muted/60 hover:border-surface-overlay"
+            >
+              <PauseCircle className="w-3.5 h-3.5" />
+              Suspend
+            </motion.button>
+
+            {suspendedSales.length > 0 && (
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowSuspended(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-lg transition-colors border border-amber-500/30 hover:border-amber-500/50"
+              >
+                <Clock className="w-3.5 h-3.5" />
+                On Hold
+                <span className="bg-amber-500/20 text-amber-300 text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                  {suspendedSales.length}
+                </span>
+              </motion.button>
+            )}
+          </div>
+        )}
+
+        <div className="flex-1 overflow-hidden">
         <Cart
           items={cartItems}
           onUpdateQuantity={handleUpdateQuantity}
@@ -685,12 +798,38 @@ export default function SalesScreen() {
           onCustomerSelect={(c) => { setSelectedCustomer(c); setPointsToRedeem(0); }}
           pointsValue={tenant?.pointsValue ?? 0.01}
         />
-      </div>
+        </div>{/* end flex-1 overflow-hidden */}
+      </div>{/* end cart sidebar */}
 
       {/* ── Mobile only ─────────────────────────────────────────────────────── */}
 
       {/* Sticky cart bar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 px-3 py-2.5 bg-surface-base/85 backdrop-blur-md border-t border-surface-muted/40">
+        {/* Suspend / On Hold row — only rendered when relevant */}
+        {(cartItems.length > 0 || suspendedSales.length > 0) && (
+          <div className="flex items-center gap-2 mb-2">
+            {cartItems.length > 0 && (
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={handleSuspend}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-100 bg-surface-muted rounded-lg border border-surface-muted/60 transition-colors"
+              >
+                <PauseCircle className="w-3.5 h-3.5" />
+                Suspend
+              </motion.button>
+            )}
+            {suspendedSales.length > 0 && (
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowSuspended(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-400 bg-amber-500/10 rounded-lg border border-amber-500/30 transition-colors"
+              >
+                <Clock className="w-3.5 h-3.5" />
+                On Hold ({suspendedSales.length})
+              </motion.button>
+            )}
+          </div>
+        )}
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={() => setCartOpen(true)}
@@ -906,6 +1045,17 @@ export default function SalesScreen() {
           />
         </Sheet>
       )}
+
+      {/* ── Suspended sales sheet ─────────────────────────────────────── */}
+      <SuspendedSalesSheet
+        open={showSuspended}
+        onOpenChange={setShowSuspended}
+        suspendedSales={suspendedSales}
+        currentCartHasItems={cartItems.length > 0}
+        currencySymbol={sym}
+        onResume={handleResume}
+        onDiscard={handleDiscardSuspended}
+      />
     </div>
   );
 }

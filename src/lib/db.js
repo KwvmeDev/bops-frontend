@@ -25,6 +25,13 @@ db.version(1).stores({
   syncMeta: 'key',
 });
 
+db.version(2).stores({
+  // Carts placed on hold mid-transaction — cashier can resume them at any time.
+  // Stores a full snapshot of SalesScreen cart state so nothing is lost.
+  // Cleared on logout via clearTenantData().
+  suspendedSales: '++localId, tenantId, createdAt',
+});
+
 /**
  * Wipes all locally cached tenant data from IndexedDB.
  * Called on logout to prevent cross-user data leakage.
@@ -34,4 +41,5 @@ export async function clearTenantData() {
   await db.categories.clear();
   await db.pendingSales.clear();
   await db.syncMeta.clear();
+  await db.suspendedSales.clear();
 }

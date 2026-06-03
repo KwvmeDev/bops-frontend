@@ -485,7 +485,7 @@ export default function Inventory() {
 
   const handleStockAdjust = async (product, adj) => {
     try {
-      await productsApi.adjustStock(product.id, adj);
+      await productsApi.adjustStock(product.id, adj, activeLocation?.id);
       setProducts(prev => prev.map(p => p.id === product.id ? { ...p, stock: p.stock + adj } : p));
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to adjust stock');

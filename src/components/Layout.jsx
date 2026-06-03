@@ -15,7 +15,9 @@ import LowStockBadge from './LowStockBadge';
 import TrialBanner from './TrialBanner';
 import EmailVerificationBanner from './EmailVerificationBanner';
 import UpgradeModal from './UpgradeModal';
+import InactivityWarningModal from './InactivityWarningModal';
 import { Avatar } from './ui';
+import { useInactivityTimeout } from '../hooks/useInactivityTimeout';
 
 export default function Layout() {
   const { user, tenant, logout, hasMinRole } = useAuth();
@@ -26,6 +28,12 @@ export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => { await logout(); navigate('/'); };
+
+  const { warningVisible, secondsLeft, stayLoggedIn } = useInactivityTimeout({
+    role: user?.role,
+    onTimeout: handleLogout,
+    enabled: !!user,
+  });
 
   const navItems = [
     { to: '/dashboard',       icon: LayoutDashboard, label: 'Dashboard' },
@@ -278,6 +286,13 @@ export default function Layout() {
       </main>
 
       <UpgradeModal />
+
+      <InactivityWarningModal
+        visible={warningVisible}
+        secondsLeft={secondsLeft}
+        onStay={stayLoggedIn}
+        onLogout={handleLogout}
+      />
     </div>
   );
 }
