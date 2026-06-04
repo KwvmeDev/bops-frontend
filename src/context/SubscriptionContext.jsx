@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { billingApi } from '../api/client';
 import { useAuth } from './AuthContext';
 
@@ -13,6 +13,11 @@ export function SubscriptionProvider({ children }) {
   const [isExpired, setIsExpired] = useState(false);
   const [loading, setLoading] = useState(true);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  // Cooldown: once the user dismisses the modal we won't auto-reopen it
+  // for 24 hours. Stored in localStorage so it survives page refreshes.
+  // Manual clicks of "Upgrade" still bypass this (openUpgradeModal is unguarded).
+  const UPGRADE_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
+  const UPGRADE_DISMISSED_KEY = 'klevr_upgrade_dismissed_at';
 
   const fetchSubscription = useCallback(async () => {
     if (!isAuthenticated) {
@@ -38,18 +43,34 @@ export function SubscriptionProvider({ children }) {
     fetchSubscription();
   }, [fetchSubscription]);
 
-  // Listen for upgrade events from API interceptor
+  // Listen for upgrade events dispatched by the API interceptor (client.js).
+  // Guards:
+  //  1. Modal already open — no-op (deduplicates concurrent 403s from multi-request pages)
+  //  2. User dismissed within the last 24 hours — silently ignored
+  //     (stored in localStorage so the cooldown survives page refreshes)
   useEffect(() => {
-    const handleUpgradeRequired = () => setUpgradeModalOpen(true);
-    const handleSubscriptionExpired = () => setUpgradeModalOpen(true);
+    const openIfAllowed = () => {
+      setUpgradeModalOpen((current) => {
+        if (current) return current; // already visible
 
-    window.addEventListener('upgrade-required', handleUpgradeRequired);
-    window.addEventListener('subscription-expired', handleSubscriptionExpired);
+        const dismissedAt = localStorage.getItem(UPGRADE_DISMISSED_KEY);
+        if (dismissedAt) {
+          const elapsed = Date.now() - Number(dismissedAt);
+          if (elapsed < UPGRADE_COOLDOWN_MS) return current; // within cooldown
+        }
+
+        return true;
+      });
+    };
+
+    window.addEventListener('upgrade-required', openIfAllowed);
+    window.addEventListener('subscription-expired', openIfAllowed);
 
     return () => {
-      window.removeEventListener('upgrade-required', handleUpgradeRequired);
-      window.removeEventListener('subscription-expired', handleSubscriptionExpired);
+      window.removeEventListener('upgrade-required', openIfAllowed);
+      window.removeEventListener('subscription-expired', openIfAllowed);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const canAccess = useCallback(
@@ -61,7 +82,10 @@ export function SubscriptionProvider({ children }) {
   );
 
   const openUpgradeModal = useCallback(() => setUpgradeModalOpen(true), []);
-  const closeUpgradeModal = useCallback(() => setUpgradeModalOpen(false), []);
+  const closeUpgradeModal = useCallback(() => {
+    localStorage.setItem(UPGRADE_DISMISSED_KEY, String(Date.now()));
+    setUpgradeModalOpen(false);
+  }, [UPGRADE_DISMISSED_KEY]);
 
   const value = {
     subscription,

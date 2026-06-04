@@ -128,11 +128,14 @@ function ReceiptCard({ sale }) {
         </button>
       </div>
 
-      {/* Receipt card — white background for print clarity */}
+      {/* Receipt card — white background for print clarity.
+          colorScheme: 'light' prevents mobile browsers from forcing dark-mode
+          recolouring on the card contents when the OS is in dark mode. */}
       <motion.div
         variants={variants.slideUp}
         initial="hidden"
         animate="visible"
+        style={{ colorScheme: 'light' }}
         className="w-full max-w-sm bg-white rounded-2xl shadow-xl overflow-hidden print:shadow-none print:rounded-none"
       >
         {/* ── Header ── */}
@@ -221,11 +224,11 @@ function ReceiptCard({ sale }) {
         </div>
 
         {/* ── Footer / thank-you ── */}
-        <div className="px-6 pb-7 pt-2 bg-zinc-50 text-center border-t border-dashed border-zinc-200">
+        <div className="px-6 pb-7 pt-2 bg-white text-center border-t border-dashed border-zinc-200">
           <p className="text-xs text-zinc-400 mt-3">
             Thank you for your purchase!
           </p>
-          <p className="text-xs text-zinc-300 mt-1">
+          <p className="text-xs text-zinc-400 mt-1">
             Goods sold are not returnable.
           </p>
         </div>

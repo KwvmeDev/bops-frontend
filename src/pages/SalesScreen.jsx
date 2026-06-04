@@ -448,6 +448,10 @@ export default function SalesScreen() {
 
   const handleCheckout = async () => {
     if (cartItems.length === 0) return;
+    if (!activeLocation?.id) {
+      toast.error('No location selected — please choose a branch before checking out');
+      return;
+    }
     setLoading(true);
 
     // Offline path: queue the sale locally and decrement stock in IndexedDB.
@@ -458,6 +462,7 @@ export default function SalesScreen() {
         const payload = {
           items: cartItems.map(i => ({ productId: i.id, quantity: i.quantity })),
           paymentMethod,
+          locationId: activeLocation.id,
         };
 
         // Persist the queued sale; the background sync service will pick it up
@@ -497,6 +502,7 @@ export default function SalesScreen() {
           ...(i.unitId ? { unitId: i.unitId } : {}),
         })),
         paymentMethod,
+        locationId: activeLocation.id,
         // Include the MoMo number as the receipt delivery phone when provided
         receiptPhone: momoPhone.trim() || undefined,
         // Link a prescription when one is required (pharmacy mode)
